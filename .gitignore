@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.next-dev/
+*.tsbuildinfo
+*.exe
+.env
+.env.local
+backend/data/
+backend/jug-demo.json
