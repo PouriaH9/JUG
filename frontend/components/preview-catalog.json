@@ -1,0 +1,123 @@
+{
+  "products": [
+    {
+      "id": "ember-set",
+      "name": "EMBER / Set of 3",
+      "slug": "ember-set",
+      "description": "A precision balanced three-ball set. Soft touch, confident grip, and a rich burnt-orange finish.",
+      "price": 1290000,
+      "category": "set",
+      "color": "Burnt orange",
+      "weight": 120,
+      "stock": 40,
+      "featured": true,
+      "rating": 4.9
+    },
+    {
+      "id": "carbon-set",
+      "name": "CARBON / Set of 3",
+      "slug": "carbon-set",
+      "description": "Understated charcoal. Consistent weight and a forgiving catch for your daily practice.",
+      "price": 1290000,
+      "category": "set",
+      "color": "Charcoal",
+      "weight": 120,
+      "stock": 30,
+      "featured": true,
+      "rating": 4.8
+    },
+    {
+      "id": "ember-solo",
+      "name": "EMBER / Single",
+      "slug": "ember-solo",
+      "description": "One perfectly weighted ball. Expand your pattern, replace a favorite, or start something new.",
+      "price": 450000,
+      "category": "solo",
+      "color": "Burnt orange",
+      "weight": 120,
+      "stock": 100,
+      "featured": true,
+      "rating": 4.9
+    },
+    {
+      "id": "ivory-solo",
+      "name": "IVORY / Single",
+      "slug": "ivory-solo",
+      "description": "A warm ivory finish with the same precise balance. Built for focus and fluid movement.",
+      "price": 450000,
+      "category": "solo",
+      "color": "Ivory",
+      "weight": 120,
+      "stock": 60,
+      "rating": 4.7
+    }
+  ],
+  "courses": [
+    {
+      "id": "first-cascade",
+      "title": "First Three-Ball Cascade",
+      "description": "Build your rhythm from the first throw to a confident three-ball cascade.",
+      "level": "Beginner",
+      "duration": "35 min",
+      "price": 0,
+      "lessons": [
+        {
+          "title": "1. One ball, one reliable arc",
+          "content": "Start in a clear space with a soft floor and enough room overhead. Use a soft juggling ball. Stand comfortably with relaxed shoulders and bent elbows; keep your hands around waist height. Toss the ball from your right hand toward your left, with its highest point near eye level. Catch gently without reaching forward. Reverse the throw. Watch the highest part of the arc rather than following your hands.\n\nPractice ten alternating catches. If you chase the ball forward, reduce the force and aim across your body. Let a poor throw drop and reset instead of lunging after it. The goal is a repeatable arc, not height or speed.",
+          "task": "make ten comfortable alternating throws without stepping forward. Repeat as needed; mark this lesson complete when the pattern feels consistent.",
+          "url": ""
+        },
+        {
+          "title": "2. Two balls: throw, throw, catch, catch",
+          "content": "Hold one ball in each hand. Throw the right ball toward the left hand. As it reaches the top of its arc, throw the left ball underneath it toward the right hand. Then catch the first ball with the left hand and the second with the right. Stop after this exchange. Repeat starting with the left hand.\n\nSay “throw, throw, catch, catch” to keep the order clear. Both balls should travel in matching arcs and cross at different moments. Avoid handing the second ball straight across or throwing both together. Use the timing from the first lesson, and let missed balls land.",
+          "task": "complete five clean exchanges starting on each side. Pause between exchanges so every attempt begins with a settled stance.",
+          "url": ""
+        },
+        {
+          "title": "3. Three balls: three throws, then stop",
+          "content": "Put two balls in your right hand and one in your left. Start by throwing one right-hand ball. At its peak, throw the left-hand ball. At the next peak, throw the remaining right-hand ball. Catch all three and stop. The first and third throws follow the same arc; the middle throw travels the opposite way.\n\nStart slowly and count “one, two, three.” If the balls collide, compare their heights and delay the next throw until the current ball approaches its peak. If you run out of space in a hand, make the next throw before catching the incoming ball. Practice starting with two balls in the left hand as well.",
+          "task": "finish five three-throw sequences with each starting hand. You do not need an uninterrupted cascade yet.",
+          "url": ""
+        },
+        {
+          "title": "4. Keep the cascade moving",
+          "content": "Begin with the three-throw sequence. Add a fourth throw before its incoming catch, then catch and stop. Build to five, six and ten throws using the same alternating rhythm. Each hand throws toward the opposite hand; each incoming ball creates the next opportunity to throw.\n\nKeep throws near eye level and in a flat plane in front of you. A higher throw gives more time but may drift; a lower throw speeds up the pattern. If the pattern moves away from you, reset and return to one-ball arcs. Use short practice blocks with breaks whenever attention or comfort fades.",
+          "task": "make ten consecutive throws with comfortable catches. Next target: twenty. Count throws rather than seconds so progress stays comparable.",
+          "url": ""
+        }
+      ]
+    },
+    {
+      "id": "flow-lab",
+      "title": "Precision and Pattern Lab",
+      "description": "Refine your technique and explore transitions, columns, and expressive patterns.",
+      "level": "Intermediate",
+      "duration": "55 min",
+      "price": 0,
+      "lessons": [
+        {
+          "title": "1. Height control and a quiet stance",
+          "content": "Warm up with an ordinary cascade. Run ten throws at your usual height, stop, then run ten with arcs slightly higher. Return to the original height. Keep the same crossing shape and avoid increasing height so far that catches become a chase. Now try ten throws with arcs slightly lower; expect a faster rhythm.\n\nUse a wall or visual reference at a safe distance to notice forward drift without throwing toward it. Look for a stable arc and small, relaxed hand movements. Review one useful observation after each attempt, such as “left throws are higher,” rather than correcting everything at once.",
+          "task": "perform three separate ten-throw runs at ordinary, slightly higher and slightly lower heights while staying comfortably in place.",
+          "url": ""
+        },
+        {
+          "title": "2. One outside throw: the half-shower entry",
+          "content": "Start a normal cascade. Replace one right-hand throw with an outside throw: move the right hand slightly outward and send that ball over the ordinary left-hand arc into the left hand. Return immediately to ordinary throws. Catch and stop if the shape becomes unclear. Learn the same isolated outside throw with the left hand.\n\nOnce a single outside throw is reliable, try one every four right-hand throws. Keep the other hand using ordinary inside throws. Build toward repeated outside throws on one side, which creates a half-shower pattern. Do not hurry the transition; practice one insertion before repeating it.",
+          "task": "land five isolated outside throws on each side within an otherwise ordinary cascade. Repeated half-shower runs are an optional next target.",
+          "url": ""
+        },
+        {
+          "title": "3. Build a repeatable practice session",
+          "content": "Choose one reliable pattern and one developing skill. Spend a short block warming up with the reliable pattern, a second block attempting the new skill in small sequences, and a final block returning to a comfortable cascade. Take a break between blocks and stop if practice becomes uncomfortable.\n\nRecord three things: the skill attempted, your best clean throw count, and one adjustment to try next time. Compare clean sequences rather than total attempts. For example: “Outside throw on left; four successful insertions; next time match the ordinary throw height.” A dropped ball is feedback about an attempt, not a reason to speed up.",
+          "task": "finish one deliberate practice session and write a short note. Repeat on another day and compare the same measure before selecting a harder target.",
+          "url": ""
+        }
+      ]
+    }
+  ],
+  "settings": {
+    "shippingFee": 0,
+    "freeShippingThreshold": 0
+  }
+}

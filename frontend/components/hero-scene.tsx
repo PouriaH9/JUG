@@ -1,4 +1,5 @@
 'use client';
+import {assetPath} from './preview-client';
 import {useLanguage} from './language';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
@@ -8,7 +9,7 @@ import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNo
 import { Box3, Vector3, Euler, Quaternion, FrontSide, type Group, type Mesh, type MeshPhysicalMaterial } from 'three';
 
 function LeatherBall({ horizontal, vertical, index, reduced, progress, packing }: { packing: MotionValue<number>; horizontal: MotionValue<number>; vertical: MotionValue<number>; index: number; reduced: boolean; progress: MotionValue<number> }) {
-  const { scene } = useGLTF('/assets/jug-brown-ball-web.glb');
+  const { scene } = useGLTF(assetPath('/assets/jug-brown-ball-web.glb'));
   const { viewport, invalidate } = useThree();
   const ref = useRef<Group>(null);
   const showcaseAngle = useRef(0);
@@ -130,7 +131,7 @@ function LeatherBall({ horizontal, vertical, index, reduced, progress, packing }
 
 
 function PackagingScene({packing}:{packing:MotionValue<number>}) {
-  const {scene}=useGLTF('/assets/jug-three-ball-packaging.glb');
+  const {scene}=useGLTF(assetPath('/assets/jug-three-ball-packaging.glb'));
   const {viewport,invalidate}=useThree();
   const ref=useRef<Group>(null);
   const {object,cap,capY}=useMemo(()=>{

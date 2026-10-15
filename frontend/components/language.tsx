@@ -19,6 +19,7 @@ const LanguageContext=createContext({language:'fa' as Language,t:(text:string)=>
 
 export function LanguageProvider({children,initialLanguage='fa'}:{children:React.ReactNode;initialLanguage?:Language}) {
  const [language,setLanguage]=useState<Language>(initialLanguage);
+ useEffect(()=>{if(process.env.NEXT_PUBLIC_FRONTEND_ONLY!=='true')return;const saved=document.cookie.split('; ').find(value=>value.startsWith('jug-language='))?.split('=')[1];if(saved==='en'||saved==='fa')setLanguage(saved);},[]);
  useEffect(()=>{document.documentElement.lang=language;document.documentElement.dir=language==='fa'?'rtl':'ltr';document.title=language==='fa'?'جاگ — ریتم خودت را پیدا کن':'JUG — Find your flow';},[language]);
  const toggleLanguage=()=>{const next=language==='fa'?'en':'fa';document.cookie=`jug-language=${next};path=/;max-age=31536000;SameSite=Lax`;setLanguage(next);};
  const t=useCallback((text:string)=>translate(text,language),[language]);

@@ -10,6 +10,7 @@ backend/jug-demo.json
 .neon
 .vercel/
 .next-*/
+out/
 .env.*
 !.env.example
 *.log
