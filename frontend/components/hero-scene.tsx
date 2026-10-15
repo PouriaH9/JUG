@@ -234,7 +234,7 @@ export default function HeroScene({onSeeOptions}:{onSeeOptions:()=>void}) {
     packingTarget.current=target;
     setUnpacking(target===0);
     const remaining=Math.abs(target-packing.get());
-    packingAnimation.current=animate(packing,target,{duration:reduced?0:(target===1?4.2:3.6)*remaining,ease:'linear'});
+    packingAnimation.current=animate(packing,target,{duration:reduced?0:(target===1?2.1:1.8)*remaining,ease:'linear'});
   });
   const [scrollScene,setScrollScene]=useState(0);
   useMotionValueEvent(scrollYProgress,'change',value=>setScrollScene(Math.min(4,Math.floor(value*4+.5))));
@@ -270,7 +270,7 @@ export default function HeroScene({onSeeOptions}:{onSeeOptions:()=>void}) {
       const next=leavingJar?3:direction>0?Math.floor(relative+.025)+1:Math.ceil(relative-.025)-1;
       const destination = start + Math.max(0, Math.min(4, next)) * step;
       if (Math.abs(destination - current) < 4) return false;
-      lockedUntil=Date.now()+(!reduced&&leavingJar?4100:next===4&&direction>0&&!reduced?4800:1100);
+      lockedUntil=Date.now()+(!reduced&&leavingJar?2300:next===4&&direction>0&&!reduced?2700:1100);
       window.scrollTo({ top: destination, behavior: reduced ? 'instant' : 'smooth' });
       return true;
     };
@@ -317,23 +317,24 @@ export default function HeroScene({onSeeOptions}:{onSeeOptions:()=>void}) {
       <directionalLight position={[-4, 1, 3]} intensity={1.5} />
       <Suspense fallback={null}>{[0, 1, 2].map(index => <LeatherBall key={index} index={index} rig={rig} requested={requestedTrick} onTrickChange={setTrickIndex} progress={reduced ? visualProgress : transition} packing={packing} reduced={!!reduced} horizontal={reduced ? horizontal : smoothHorizontal} vertical={reduced ? vertical : smoothVertical} />)}<PackagingScene packing={packing}/></Suspense>
     </Canvas>
+    <motion.h1 className="hero-trick-backdrop" data-long={t(JUGGLING_TRICKS[trickIndex]).length>14} aria-hidden={sceneIndex!==0} style={{opacity:firstOpacity}}>{t(JUGGLING_TRICKS[trickIndex])}</motion.h1>
     {sceneIndex===0&&<div className="hero-trick-controls" onPointerDown={()=>{trickInteractionUntil.current=Date.now()+1400;}} role="group" aria-label={t("Juggling tricks")}>
       <motion.div className="hero-trick-swipe" onPanEnd={(_,info)=>{if(Math.abs(info.offset.x)>45&&Math.abs(info.offset.x)>Math.abs(info.offset.y)*1.3)changeTrick(info.offset.x<0?1:-1);}} />
       <button className="hero-trick-arrow hero-trick-prev" aria-label={t("Previous trick")} onClick={()=>changeTrick(-1)}><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
       <button className="hero-trick-arrow hero-trick-next" aria-label={t("Next trick")} onClick={()=>changeTrick(1)}><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button>
       <div className="hero-trick-status" aria-live="polite">{selectedTrick!==trickIndex?t("Preparing next trick"):t("Swipe to change trick")}</div>
     </div>}
-    <motion.div className="hero-product-copy" aria-hidden={sceneIndex !== 0} style={{opacity:firstOpacity,y:firstY}}><span className="hero-trick-label">{String(selectedTrick+1).padStart(2,'0')} / {JUGGLING_TRICKS.length} · {t(JUGGLING_TRICKS[selectedTrick])}</span><h1>{t("juggling, balls")}</h1><p>{t("handmade  goat leather")}</p><p>{t("Features highly durable Thread")}</p></motion.div>
-    <motion.div className="hero-product-copy hero-second-copy" aria-hidden={sceneIndex !== 1} style={{opacity:secondOpacity,y:secondY}}><span className="hero-chapter">{t("02 / CRAFT IN YOUR HANDS")}</span><h2>{t("Every stitch.")}<br/>{t("Every throw.")}</h2><p>{t("handmade  goat leather")}</p><p>{t("Features highly durable Thread")}</p></motion.div>
+    <motion.div className="hero-product-copy hero-intro-copy" aria-hidden={sceneIndex !== 0} style={{opacity:firstOpacity,y:firstY}}><h2>{t("Find your rhythm.")}</h2><p>{t("One throw. Endless possibilities.")}</p></motion.div>
+    <motion.div className="hero-product-copy hero-second-copy" aria-hidden={sceneIndex !== 1} style={{opacity:secondOpacity,y:secondY}}><h2>{t("Made to flow.")}</h2><p>{t("Handmade goat leather.")}</p></motion.div>
     <motion.div className="hero-material-callout" aria-hidden={sceneIndex !== 2} initial={false} animate={{opacity:sceneIndex === 2 ? 1 : 0}} transition={{duration:.45}}>
       <svg className="hero-detail-line" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><motion.path d="M 38 30 L 68 43 L 84 43" pathLength={1} style={{pathLength:leatherLine}}/><circle cx="38" cy="30" r=".6"/></svg>
-      <div className="hero-detail-copy"><span className="hero-chapter">{t("03 / THE LEATHER")}</span><h2>{t("Quality you")}<br/>{t("can feel.")}</h2><p>{t("Handmade goat leather.")}</p><p>{t("A close look at the natural grain")}<br/>{t("and the texture in every ball.")}</p></div>
+      <div className="hero-detail-copy"><h2>{t("Naturally tactile.")}</h2><p>{t("Goat leather. A feel of its own.")}</p></div>
     </motion.div>
     <motion.div className="hero-material-callout" aria-hidden={sceneIndex !== 3} initial={false} animate={{opacity:sceneIndex === 3 ? 1 : 0}} transition={{duration:.45}}>
       <svg className="hero-detail-line" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><motion.path d="M 43 32 L 68 45 L 84 45" pathLength={1} style={{pathLength:stitchLine}}/><circle cx="43" cy="32" r=".6"/></svg>
-      <div className="hero-detail-copy"><span className="hero-chapter">{t("04 / THE STITCHING")}</span><h2>{t("Small stitches.")}<br/>{t("Strong connection.")}</h2><p>{t("Highly durable thread.")}</p><p>{t("Follow the seam, stitch by stitch.")}<br/>{t("The detail that holds it all together.")}</p></div>
+      <div className="hero-detail-copy"><h2>{t("Strength in every stitch.")}</h2><p>{t("Durable thread. Made for repetition.")}</p></div>
     </motion.div>
-    <motion.div className="hero-product-copy hero-packaging-copy" aria-hidden={sceneIndex !== 4 || !packagingReady} initial={false} animate={{opacity:sceneIndex === 4 && packagingReady ? 1 : 0}}><span className="hero-chapter">{t("05 / THE PACKAGING")}</span><h2>{t("Three balls.")}<br/>{t("One home.")}</h2><p>{t("Your JUG set, together in its branded glass jar.")}</p><p>{t("From the first look to the next practice.")}</p><button className="button orange hero-see-options" onClick={onSeeOptions}>{t("See options")}<span aria-hidden="true">↗</span></button></motion.div>
+    <motion.div className="hero-product-copy hero-packaging-copy" aria-hidden={sceneIndex !== 4 || !packagingReady} initial={false} animate={{opacity:sceneIndex === 4 && packagingReady ? 1 : 0}}><h2>{t("Three balls. One home.")}</h2><p>{t("Your rhythm, ready to go.")}</p><button className="button orange hero-see-options" onClick={onSeeOptions}>{t("See options")}<span aria-hidden="true">↗</span></button></motion.div>
     <div className="hero-scroll-hint" aria-hidden="true" style={{display:sceneIndex===4&&packagingReady?'none':undefined}}>{sceneIndex === 4 && !packagingReady ? (unpacking?t("UNPACKING YOUR SET"):t("PACKING YOUR SET")) : t("SCROLL TO EXPLORE")} <span>{sceneIndex === 4 && !packagingReady ? '·' : '↓'}</span></div>
   </SceneBoundary></div></div>;
 }

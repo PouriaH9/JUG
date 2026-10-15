@@ -131,3 +131,16 @@ header.site-header .navigation-panel .bag-button span{display:inline}
 .hero-sticky-stage .hero-packaging-copy{top:61%}
 .hero-see-options{pointer-events:auto;margin-top:20px;min-width:174px}
 @media(min-width:721px){.hero-sticky-stage .hero-packaging-copy{top:60%}}
+.hero-sticky-stage{isolation:isolate}
+.hero-sticky-stage>div:first-child{z-index:2}
+.hero-trick-backdrop{position:absolute;z-index:1;top:27%;left:8%;right:8%;transform:translateY(-50%);margin:0;text-align:center;color:#111;font-size:clamp(56px,15vw,220px);font-weight:800;line-height:.93;letter-spacing:-.07em;pointer-events:none;overflow-wrap:normal}
+.hero-trick-backdrop[data-long="true"]{font-size:clamp(42px,10vw,150px)}
+.hero-trick-backdrop[aria-hidden="true"]{visibility:hidden}
+.hero-intro-copy h2{font-size:clamp(32px,6vw,64px);margin-bottom:14px}
+.hero-trick-status{top:47%;font-size:9px}
+.hero-sticky-stage .hero-intro-copy{top:57%}
+.hero-detail-copy h2,.hero-second-copy h2,.hero-packaging-copy h2{max-width:700px;margin-left:auto;margin-right:auto;text-wrap:balance}
+.hero-scroll-hint{font-size:0}
+.hero-scroll-hint span{font-size:20px}
+html[dir=rtl] .hero-trick-backdrop{letter-spacing:0;line-height:1.25}
+@media(max-width:720px){.hero-trick-backdrop{left:9%;right:9%;font-size:clamp(52px,15vw,108px)}.hero-trick-backdrop[data-long="true"]{font-size:clamp(36px,10vw,72px)}.hero-detail-copy h2,.hero-second-copy h2,.hero-packaging-copy h2{font-size:clamp(32px,8vw,52px)}}
