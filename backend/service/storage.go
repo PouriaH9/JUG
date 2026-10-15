@@ -22,7 +22,7 @@ import (
 	"github.com/aws/smithy-go"
 )
 
-const maxImageSize = 5 << 20
+const maxImageSize = 4 << 20
 const imageCache = "public, max-age=31536000, immutable"
 
 var imageKeyPattern = regexp.MustCompile(`^products/[a-f0-9]{32}\.(png|jpg|webp)$`)
@@ -93,7 +93,7 @@ func (a *App) uploadImage(w http.ResponseWriter, r *http.Request) {
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxImageSize+(64<<10))
 	if err := r.ParseMultipartForm(maxImageSize); err != nil {
-		fail(w, 413, "Upload one image of at most 5 MiB")
+		fail(w, 413, "Upload one image of at most 4 MiB")
 		return
 	}
 	if r.MultipartForm != nil {
@@ -107,7 +107,7 @@ func (a *App) uploadImage(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 	data, err := io.ReadAll(io.LimitReader(file, maxImageSize+1))
 	if err != nil || len(data) > maxImageSize {
-		fail(w, 413, "Image must be at most 5 MiB")
+		fail(w, 413, "Image must be at most 4 MiB")
 		return
 	}
 	kind, extension := imageType(data)

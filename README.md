@@ -1,14 +1,14 @@
-# JUG local review
+# JUG
 
 This is the first working prototype, with sample products/prices and simulated payments. PostgreSQL runs locally at 127.0.0.1:54329. The storefront is http://127.0.0.1:3000.
 
 ## Start again
 
-Run `./start-postgres.ps1` if PostgreSQL has stopped. Set `$env:ADMIN_PASSWORD = 'JugAdmin!2026'` for this local seed, then `./start-local.ps1`. Alternatively, Docker Desktop users can run `docker compose up -d` and `./start-local.ps1`.
+Run `./start-postgres.ps1` if PostgreSQL has stopped. Set `ADMIN_EMAIL` and a unique `ADMIN_PASSWORD` of at least 16 characters, then run `./start-local.ps1`. Alternatively, Docker Desktop users can run `docker compose up -d` and `./start-local.ps1`.
 
 Use `./start-local.ps1 -Demo` only when you deliberately want local JSON storage instead of PostgreSQL.
 
-Admin: admin@jug.local / JugAdmin!2026. These credentials are only for reviewing this local prototype.
+Administrator credentials are set before the database is first initialized. Existing accounts are preserved on restart; changing environment variables does not reset an existing account.
 
 ## Review
 
@@ -16,4 +16,10 @@ Browse Shop, add a set or single ball, check out as guest or customer, apply FIR
 
 ## Limits
 
-Real payment integration, licensed video courses, production hosting, email/SMS and final shipping/return/legal policies remain future work. Run one Go API instance: its first-version PostgreSQL storage uses a serialized JSONB state record. See docs/IMPLEMENTATION-NOTES.md and backend/README.md.
+Real payment integration, licensed video courses, email/SMS and final shipping/return/legal policies remain future work. The PostgreSQL storage uses a serialized JSONB state record with transaction locking across API instances. This is suitable for prototype review; high-volume commerce needs a normalized schema. See `backend/README.md`.
+
+## Save and publish
+
+From this folder, run `.\scripts\save-work.ps1 -Message "Describe your change"` to commit and push to [PouriaH9/JUG](https://github.com/PouriaH9/JUG). GitHub Actions runs the frontend build and backend checks.
+
+The Vercel/Neon configuration is prepared; initial cloud authorization is still required. See [deployment instructions](docs/DEPLOYMENT.md) and [verified deployment status](docs/CLOUD-DEPLOYMENT-STATUS.md). After Vercel Git integration is connected, pushes to `main` publish the production site and pull requests receive preview deployments.

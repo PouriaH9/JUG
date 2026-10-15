@@ -147,6 +147,7 @@ function PackagingScene({packing}:{packing:MotionValue<number>}) {
           // A thin-shell Fresnel finish avoids a second blurry refraction pass.
           // The interior stays clear; grazing angles define the curved glass edge.
           material.transmission=0;
+          material.color.set('#8fa69e');
           material.depthWrite=false;
           material.side=FrontSide;
           material.roughness=.06;
@@ -157,7 +158,7 @@ function PackagingScene({packing}:{packing:MotionValue<number>}) {
           material.onBeforeCompile=shader=>{
             shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>',`
               float glassEdge = pow(1.0 - abs(dot(normalize(normal), normalize(vViewPosition))), 3.0);
-              diffuseColor.a = 0.025 + 0.3 * glassEdge;
+              diffuseColor.a = 0.025 + 0.5 * glassEdge;
               #include <opaque_fragment>
             `);
           };
@@ -176,6 +177,12 @@ function PackagingScene({packing}:{packing:MotionValue<number>}) {
     [1,2,3].forEach(i=>{const ball=object.getObjectByName('Packed_Ball_'+i);if(ball)ball.visible=false;});
     return {object,cap,capY:cap?.position.y||0};
   },[scene]);
+  useEffect(()=>()=>{
+    object.traverse(child=>{
+      const mesh=child as Mesh;
+      if(mesh.isMesh)(Array.isArray(mesh.material)?mesh.material:[mesh.material]).forEach(material=>material.dispose());
+    });
+  },[object]);
   useEffect(()=>packing.on('change',()=>invalidate()),[packing,invalidate]);
   useFrame(()=>{
     if(!ref.current)return;

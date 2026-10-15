@@ -2,6 +2,22 @@
 
 Repository: https://github.com/PouriaH9/JUG
 
+## Initial deployment or resume after sign-in
+
+The deployment setup is prepared locally. A public production URL is pending successful Neon and Vercel authorization and deployment; this document does not confirm either has completed.
+
+To sign in and deploy in one session, run from the application folder and approve each service in the browser when it opens:
+
+```powershell
+pwsh -NoProfile -File .\scripts\login.ps1 -Deploy
+```
+
+After sign-in, `deploy.ps1` uses the installed CLIs with the bundled Node 24 runtime. It provisions the existing Neon project `winter-rice-30336144`, branch `production`, and its private `assets` bucket; pulls service variables into ignored `.env.local`; links Vercel project `jug` in `pouriah9s-projects`; selects Services; connects the GitHub repository; uploads credentials to Production; and deploys. It stops when a command fails and can be rerun after resolving access. It does not perform sign-in or commit/push code. Existing Windows proxy settings apply only to its child processes.
+
+The initial admin address is `pouriah9@gmail.com`. A long random password is created once in ignored `.env.local` if none is present. Existing credentials are preserved. Credentials travel to Vercel through standard input and are hidden from command output and arguments. Read the local file privately when you need to sign in.
+
+Production credentials are **not** copied to Preview. Configure a separate Neon preview branch and its service variables before expecting data-backed previews to work. The frontend and Go backend share one Vercel Services deployment and public domain.
+
 Saving files in your editor only saves them on this computer. To save the application to GitHub and trigger its connected Vercel deployment, open PowerShell in the application folder and run:
 
 ```powershell
@@ -17,7 +33,7 @@ The script commits all application changes that Git does not ignore, then pushes
 - GitHub Actions checks the frontend with Node 22 (`npm ci`, `npm run build`) and the backend with `go test ./...` and `go vet ./...`.
 - Vercel's Git integration publishes production and preview deployments. The checks run independently; requiring them before merge needs a GitHub branch rule for `main`.
 
-In Vercel, connect `PouriaH9/JUG`, set the production branch to `main`, and keep deployment settings aligned with the committed Vercel configuration. Store service environment variables in Vercel project settings for each intended environment. Local `.env` files do not automatically update Vercel. After changing environment variables, redeploy the affected environment.
+In Vercel, connect `PouriaH9/JUG`, set the production branch to `main`, select the Services framework with the repository root as Root Directory, and keep deployment settings aligned with the committed Vercel configuration. The initial deployment script configures these services and the repository connection; verify the production branch in project settings. Store service environment variables in Vercel project settings for each intended environment. Local `.env` files do not automatically update Vercel. After changing environment variables, redeploy the affected environment.
 
 Neon owns the PostgreSQL and object-storage services. Keep the provisioned connection credentials in local environment files and Vercel settings only. Use a separate Neon branch for preview data when adding preview credentials; previews sharing production credentials share its data.
 
