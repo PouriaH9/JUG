@@ -36,7 +36,7 @@ function LeatherBall({ horizontal, vertical, index, reduced, progress, packing, 
     if(!reduced) animationTime.current += Math.min(delta,.04);
     const elapsed=animationTime.current;
     const span=viewport.width*.18;
-    const height=Math.min(viewport.height*.27,viewport.width*.52);
+    const height=Math.min(viewport.height*.30,viewport.width*.62);
     const trick=jugglingPosition(reduced?0:elapsed,index);
     const perspectiveScale=1/(1-trick.z/8);
     const spin=reduced?0:elapsed*4.2+index*1.2;
