@@ -15,6 +15,7 @@ function LeatherBall({ horizontal, vertical, index, reduced, progress, packing, 
   const ref = useRef<Group>(null);
   const showcaseAngle = useRef(0);
   const lastTrick = useRef(-1);
+  const animationTime = useRef(0);
   const showcasePose = useMemo(() => ({ euler: new Euler(), quaternion: new Quaternion() }), []);
   const radius = Math.min(viewport.width * .068, viewport.height * .06);
   const { object, scale, center } = useMemo(() => {
@@ -30,39 +31,15 @@ function LeatherBall({ horizontal, vertical, index, reduced, progress, packing, 
     const offProgress = progress.on('change', () => invalidate());
     return () => { offX(); offY(); offProgress(); offPacking(); };
   }, [horizontal, vertical, progress, packing, invalidate]);
-  useFrame(({ clock }, delta) => {
+  useFrame((_, delta) => {
     if (!ref.current) return;
-    // Each ball alternates hands, with three throws evenly staggered in time.
-    const beat = (reduced ? .6 : clock.elapsedTime / .38) + index * 2;
-    const leg = Math.floor(beat / 3);
-    const phase = (beat % 3) / 3;
-    const direction = leg % 2 === 0 ? 1 : -1;
-    const flightDuration = .86;
-    const flight = Math.min(phase / flightDuration, 1);
-    const span = viewport.width * .18;
-    const inner = span * .68;
-    const height = Math.min(viewport.height * .27, viewport.width * .52);
-    const catchPhase = Math.max(0, (phase - flightDuration) / (1 - flightDuration));
-    // Ballistic flight: initial upward velocity is cancelled by constant gravity.
-    const flightSeconds = 3 * .38 * flightDuration;
-    const gravity = 8 * height / (flightSeconds * flightSeconds);
-    const time = flight * flightSeconds;
-    const launchVelocity = gravity * flightSeconds / 2;
-    const lift = launchVelocity * time - .5 * gravity * time * time;
-    const scoop = catchPhase * catchPhase * (3 - 2 * catchPhase);
-    const x = phase < flightDuration
-      ? direction * (-inner + (span + inner) * flight)
-      : direction * (span + (inner - span) * scoop);
-    // A shallow front/back offset separates the crossing throws without teleporting.
-    const depth = direction * .5 * Math.sin(Math.PI * flight);
-    const perspectiveScale = 1 / (1 - depth / 8);
-    const spin = reduced ? 0 : leg * Math.PI * 2 + flight * Math.PI * 1.85 + catchPhase * Math.PI * .15;
-    ref.current.position.set(
-      x,
-      viewport.height * .12 + lift - radius * .65 * Math.sin(catchPhase * Math.PI),
-      depth
-    );
-    const trick = jugglingPosition(reduced ? 0 : clock.elapsedTime,index);
+    if(!reduced) animationTime.current += Math.min(delta,.04);
+    const elapsed=animationTime.current;
+    const span=viewport.width*.18;
+    const height=Math.min(viewport.height*.27,viewport.width*.52);
+    const trick=jugglingPosition(reduced?0:elapsed,index);
+    const perspectiveScale=1/(1-trick.z/8);
+    const spin=reduced?0:elapsed*4.2+index*1.2;
     ref.current.position.set(trick.x*span,viewport.height*.12+trick.y*height,trick.z);
     if(index===0 && lastTrick.current!==trick.index){lastTrick.current=trick.index;onTrickChange(trick.index);}
     const overall = Math.min(1, Math.max(0, progress.get()));

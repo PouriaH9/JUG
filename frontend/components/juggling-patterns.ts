@@ -22,7 +22,8 @@ export function trickPosition(trick:number, seconds:number, ball:number):Positio
     const u=Math.min(phase/.88,1);
     return {x:ball-1,y:4*u*(1-u)-.035*Math.sin(Math.max(0,(phase-.88)/.12)*Math.PI),z:0};
   }
-  const beat=seconds/.38+ball*2;
+  const wrapped=((seconds%2.28)+2.28)%2.28;
+  const beat=wrapped/.38+ball*2;
   const direction=Math.floor(beat/3)%2===0?1:-1;
   const phase=(beat%3)/3;
   const u=Math.min(phase/.86,1);
@@ -40,8 +41,20 @@ export function trickPosition(trick:number, seconds:number, ball:number):Positio
 
 // One complete pattern per turn, followed by a brief connecting movement.
 export const TRICK_DURATIONS = [2.28, 1.8, 1.35, 2.28] as const;
-export const TRICK_TRANSITION = .18;
+export const TRICK_TRANSITION = .5;
 export const TRICK_SEQUENCE_DURATION = TRICK_DURATIONS.reduce((sum,duration)=>sum+duration+TRICK_TRANSITION,0);
+
+// Smooth the brief catch/release corners while preserving ballistic flight.
+function flowingPosition(trick:number, seconds:number, ball:number):Position {
+  const weights=[1,6,15,20,15,6,1];
+  const result={x:0,y:0,z:0};
+  for(let i=0;i<weights.length;i++){
+    const p=trickPosition(trick,seconds+(i-3)*.014,ball);
+    const weight=weights[i]/64;
+    result.x+=p.x*weight;result.y+=p.y*weight;result.z+=p.z*weight;
+  }
+  return result;
+}
 
 export function jugglingPosition(seconds:number, ball:number) {
   let local = Math.max(0,seconds)%TRICK_SEQUENCE_DURATION;
@@ -51,9 +64,10 @@ export function jugglingPosition(seconds:number, ball:number) {
     index++;
   }
   const duration=TRICK_DURATIONS[index];
-  const a=trickPosition(index,Math.min(local,duration),ball);
-  const blend=Math.min(1,Math.max(0,(local-duration)/TRICK_TRANSITION));
-  const weight=smooth(blend);
-  const b=trickPosition((index+1)%JUGGLING_TRICKS.length,0,ball);
+  // Both patterns keep moving throughout the handoff; neither freezes or resets.
+  const a=flowingPosition(index,local+TRICK_TRANSITION,ball);
+  const u=Math.min(1,Math.max(0,(local-duration)/TRICK_TRANSITION));
+  const weight=u*u*u*(u*(u*6-15)+10);
+  const b=flowingPosition((index+1)%JUGGLING_TRICKS.length,Math.max(0,local-duration),ball);
   return {index,x:a.x+(b.x-a.x)*weight,y:a.y+(b.y-a.y)*weight,z:a.z+(b.z-a.z)*weight};
 }
