@@ -1,6 +1,7 @@
 'use client';
 import {assetPath} from './preview-client';
 import {useLanguage} from './language';
+import {jugglingPosition, JUGGLING_TRICKS} from './juggling-patterns';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { ContactShadows, useGLTF, Environment, Lightformer } from '@react-three/drei';
@@ -8,11 +9,12 @@ import { motion, animate, useMotionValue, useSpring, useReducedMotion, useScroll
 import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Box3, Vector3, Euler, Quaternion, FrontSide, type Group, type Mesh, type MeshPhysicalMaterial } from 'three';
 
-function LeatherBall({ horizontal, vertical, index, reduced, progress, packing }: { packing: MotionValue<number>; horizontal: MotionValue<number>; vertical: MotionValue<number>; index: number; reduced: boolean; progress: MotionValue<number> }) {
+function LeatherBall({ horizontal, vertical, index, reduced, progress, packing, onTrickChange }: { onTrickChange:(index:number)=>void; packing: MotionValue<number>; horizontal: MotionValue<number>; vertical: MotionValue<number>; index: number; reduced: boolean; progress: MotionValue<number> }) {
   const { scene } = useGLTF(assetPath('/assets/jug-brown-ball-web.glb'));
   const { viewport, invalidate } = useThree();
   const ref = useRef<Group>(null);
   const showcaseAngle = useRef(0);
+  const lastTrick = useRef(-1);
   const showcasePose = useMemo(() => ({ euler: new Euler(), quaternion: new Quaternion() }), []);
   const radius = Math.min(viewport.width * .068, viewport.height * .06);
   const { object, scale, center } = useMemo(() => {
@@ -60,6 +62,9 @@ function LeatherBall({ horizontal, vertical, index, reduced, progress, packing }
       viewport.height * .12 + lift - radius * .65 * Math.sin(catchPhase * Math.PI),
       depth
     );
+    const trick = jugglingPosition(reduced ? 0 : clock.elapsedTime,index);
+    ref.current.position.set(trick.x*span,viewport.height*.12+trick.y*height,trick.z);
+    if(index===0 && lastTrick.current!==trick.index){lastTrick.current=trick.index;onTrickChange(trick.index);}
     const overall = Math.min(1, Math.max(0, progress.get()));
     const pack = packing.get();
     ref.current.visible = index === 0 || overall < .3 || pack > .48;
@@ -214,6 +219,7 @@ class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean
 
 export default function HeroScene() {
   const {t}=useLanguage();
+  const [trickIndex,setTrickIndex]=useState(0);
   const reduced = useReducedMotion();
   const story = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: story, offset: ['start start', 'end end'] });
@@ -299,9 +305,9 @@ export default function HeroScene() {
       <hemisphereLight args={['#fff6e8', '#b8aaa0', 2]} />
       <directionalLight position={[3, 5, 6]} intensity={3} />
       <directionalLight position={[-4, 1, 3]} intensity={1.5} />
-      <Suspense fallback={null}>{[0, 1, 2].map(index => <LeatherBall key={index} index={index} progress={reduced ? scrollYProgress : transition} packing={packing} reduced={!!reduced} horizontal={reduced ? horizontal : smoothHorizontal} vertical={reduced ? vertical : smoothVertical} />)}<PackagingScene packing={packing}/></Suspense>
+      <Suspense fallback={null}>{[0, 1, 2].map(index => <LeatherBall key={index} index={index} onTrickChange={setTrickIndex} progress={reduced ? scrollYProgress : transition} packing={packing} reduced={!!reduced} horizontal={reduced ? horizontal : smoothHorizontal} vertical={reduced ? vertical : smoothVertical} />)}<PackagingScene packing={packing}/></Suspense>
     </Canvas>
-    <motion.div className="hero-product-copy" aria-hidden={sceneIndex !== 0} style={{opacity:firstOpacity,y:firstY}}><h1>{t("juggling, balls")}</h1><p>{t("handmade  goat leather")}</p><p>{t("Features highly durable Thread")}</p></motion.div>
+    <motion.div className="hero-product-copy" aria-hidden={sceneIndex !== 0} style={{opacity:firstOpacity,y:firstY}}><span className="hero-trick-label">0{trickIndex+1} / {t(JUGGLING_TRICKS[trickIndex])}</span><h1>{t("juggling, balls")}</h1><p>{t("handmade  goat leather")}</p><p>{t("Features highly durable Thread")}</p></motion.div>
     <motion.div className="hero-product-copy hero-second-copy" aria-hidden={sceneIndex !== 1} style={{opacity:secondOpacity,y:secondY}}><span className="hero-chapter">{t("02 / CRAFT IN YOUR HANDS")}</span><h2>{t("Every stitch.")}<br/>{t("Every throw.")}</h2><p>{t("handmade  goat leather")}</p><p>{t("Features highly durable Thread")}</p></motion.div>
     <motion.div className="hero-material-callout" aria-hidden={sceneIndex !== 2} initial={false} animate={{opacity:sceneIndex === 2 ? 1 : 0}} transition={{duration:.45}}>
       <svg className="hero-detail-line" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><motion.path d="M 38 30 L 68 43 L 84 43" pathLength={1} style={{pathLength:leatherLine}}/><circle cx="38" cy="30" r=".6"/></svg>
