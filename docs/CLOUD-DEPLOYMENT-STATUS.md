@@ -1,32 +1,35 @@
-# Cloud deployment verification — 2026-10-15
+# JUG cloud deployment — verified 15 October 2026
 
-Application repository: https://github.com/PouriaH9/JUG (branch `main`).
+Production website: https://jug-liard.vercel.app
 
-## Verified
+Frontend fallback: https://pouriah9.github.io/JUG/
 
-- Initial application push: `b7ad8bbb253d8f25cee50224caacdfccac1e70e4`.
-- GitHub Actions: https://github.com/PouriaH9/JUG/actions/runs/38734649378 — completed, success; frontend and backend jobs both succeeded.
-- Root `npm run build`: exit 0. Next.js reported `Compiled successfully`, type validation passed, and `Generating static pages (10/10)` completed.
-- Backend `go test ./...`: exit 0, `ok jug/backend/service`.
-- Backend and root `go vet ./...`: exit 0.
-- Root `go test ./...`: exit 0, Vercel API handler compiles.
-- Storage tests exercise authenticated uploads, file limits and types, S3 request signing, path-style addressing, and a local upload/read roundtrip.
-- Started the production frontend on `http://127.0.0.1:3008`. Browser checks confirmed the rendered 3D hero, live local catalog, shop navigation, adding a product to the cart, and Persian/English switching. This frontend used the existing local PostgreSQL-backed API on port 8080; it does not prove Neon connectivity.
+## Deployment
 
-## Cloud work pending authentication
+The full Next.js frontend and Go backend are deployed together in Vercel project `pouriah9s-projects/jug` using Services. The project is connected to `PouriaH9/JUG`; production uses `main`. The initial CLI deployment reached READY, and its public domain returned HTTP 200 without requiring Vercel sign-in.
 
-- Installed Neon CLI 8.4.5 and Vercel CLI 64.2.0. They require a newer Node than the computer's default Node 18; commands were run using the bundled Node 24 runtime.
-- Ran the requested `neon init -y --org-id org-lingering-cherry-24240663 --project-id winter-rice-30336144 --branch production --services postgres,object-storage`. It created `.neon`, `neon.ts`, and dependencies, but reported `linked, not verified`.
-- `neon login` initially failed with `unexpected HTTP response status code`. Applying the existing Windows proxy to this command fixed OAuth discovery and opened the browser consent page. Browser authorization was not completed before its 60-second timeout.
-- `neon deploy` has not succeeded. No Neon database URL or storage credentials were pulled. No live Neon database or storage test has passed.
-- `vercel whoami` reported `Logged out`; `vercel login` opened its device authorization page and remained pending.
-- A temporary deployment was attempted as a fallback, but Vercel rejected its token. No deployment URL was produced.
-- Vercel project creation, Services framework setting, environment synchronization, Git integration, automatic deployments, and live-site tests remain pending. The committed workflow currently runs checks only.
+Neon project `winter-rice-30336144`, branch `production`, supplies PostgreSQL and the private `assets` bucket. Credentials are kept in ignored `.env.local` and Vercel Production variables. Administrator credentials are generated once and are not committed.
 
-## Complete after sign-in
+## Passed checks
 
-Finish Vercel CLI authorization and run `neon login` with the newer Node runtime and the existing network proxy. Then run `scripts/deploy.ps1` from the application folder. Do not treat the configuration as a live deployment until that script succeeds and the returned URL passes browser/API checks.
+- `npm run build`: compiled successfully, TypeScript checks passed, 10/10 pages generated.
+- `node frontend/scripts/verify-juggling.cjs`: all 144 pattern handoffs, rapid input, shared-frame stability, catches and releases passed.
+- Live PostgreSQL test: sessions work across two independent API instances and concurrent cart/wishlist updates persist. Temporary test user cleaned up.
+- Live Neon object-storage test: upload, byte-exact readback, media proxy, caching and cleanup passed.
+- Live Vercel test `TestDeployedAPIStorageRoundTrip`: administrator login 200; authenticated multipart image upload 200; public media 200 with exact bytes, immutable caching and `nosniff`. Generated image removed and temporary session logged out.
+- Public `/`, `/api/health`, `/api/products` and GLB model returned 200. Health reports PostgreSQL; catalog contains four seeded products.
+- Browser checks confirmed the 3D homepage, navigation and real catalog on the Vercel domain.
 
-The target configuration is a Vercel **Services** project: Next.js frontend and Go backend under one domain. Configure PostgreSQL and private object storage from Neon, and unique administrator credentials on the server. Previews must use isolated Neon credentials; do not silently reuse production data.
+## Resolved setup issues
 
-Checkout remains a simulated test payment flow.
+Neon access from this computer requires its existing network proxy; direct requests initially returned 403. The proxy is applied only to relevant local processes. Both live Neon tests pass through it.
+
+The first Git-triggered Vercel build failed while obtaining Go VCS metadata in the service build directory. Production and Preview now set `GOFLAGS=-buildvcs=false`; Go stamping is unnecessary for this build. The initial CLI build succeeded. Publish waiting distinguishes Git deployments from CLI deployments and tracks the exact pushed commit.
+
+The Vercel project API does not accept `nodeVersion` during project creation; the deployment script was corrected. Authentication and provisioning are complete.
+
+## Save and publish
+
+Double-click `publish.cmd`, or run `scripts/publish.ps1` with a descriptive message. It commits and pushes application changes, follows GitHub checks and Pages publication, and waits for the same commit's Vercel Git deployment. Failures are shown instead of reporting an older deployment as successful. Files must be pushed; editor saves alone do not publish.
+
+Checkout payments remain simulated. No customer orders or real payment transactions were created during deployment verification. Preview database credentials remain separate from Production; full backend previews require an isolated Neon branch before use.

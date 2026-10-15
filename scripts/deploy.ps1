@@ -151,6 +151,7 @@ try {
         Invoke-DeploymentCli vercel @('env', 'add', $key, 'production', '--force', '--sensitive', '--yes', '--scope', 'pouriah9s-projects') $serviceEnv[$key] | Out-Null
         Write-Host "Configured $key."
     }
+    Invoke-DeploymentCli vercel @('env', 'add', 'GOFLAGS', 'production', '--force', '--yes', '--scope', 'pouriah9s-projects') '-buildvcs=false' | Out-Null
     Write-Host 'Deploying production. The final deployment address will appear below.'
     Invoke-DeploymentCli vercel @('--prod', '--yes', '--scope', 'pouriah9s-projects') -ShowOutput | Out-Null
     Write-Host 'Admin credentials are saved only in ignored .env.local and Vercel Production settings.'

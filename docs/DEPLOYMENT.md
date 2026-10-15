@@ -4,7 +4,7 @@ Repository: https://github.com/PouriaH9/JUG
 
 ## One step to save and publish
 
-Double-click **`publish.cmd`** in the application folder. It saves your application changes to GitHub with a dated commit message, pushes your current branch, and on `main` waits for this exact commit's application checks and frontend preview deployment. The window stays open with the result and links. No separate local rebuild is needed before pushing; the online workflows build automatically.
+Double-click **`publish.cmd`** in the application folder. It saves your application changes to GitHub with a dated commit message, pushes your current branch, and on `main` waits for this exact commit's application checks, frontend preview, and Vercel production Git deployment. The window stays open with the result and links. No separate local rebuild is needed before pushing; the online workflows build automatically.
 
 For a descriptive message, run:
 
@@ -18,11 +18,11 @@ The compatible save command also supports waiting:
 .\scripts\save-work.ps1 -Message "Update the homepage design" -Wait
 ```
 
-Without `-Wait`, saving and pushing returns immediately. Waiting reports workflow failures, network errors, or a 15-minute timeout without losing the GitHub commit. A successful preview prints a phone-ready URL with the commit in its query string, such as `https://pouriah9.github.io/JUG/?v=COMMIT`. This confirms the static frontend preview; follow the separate Vercel project link for the full application's deployment status. Feature branches remain separate until merged to `main`.
+Without `-Wait`, saving and pushing returns immediately. Waiting reports workflow or Vercel failures, network errors, or a 15-minute timeout without losing the GitHub commit. A successful preview prints a phone-ready fallback with the commit in its query string, such as `https://pouriah9.github.io/JUG/?v=COMMIT`. When the same commit's Vercel Git deployment reaches `READY`, it prints the full application's deployment URL too. An unrelated or older deployment does not count as success. Vercel status uses the existing CLI sign-in on this computer and never prints credentials. Feature branches remain separate until merged to `main`.
 
 ## Initial deployment or resume after sign-in
 
-Neon and Vercel sign-in have completed on this computer. The full production deployment is being configured; this document does not confirm a successful live deployment. The static frontend preview uses its independent GitHub Pages workflow.
+Neon and Vercel sign-in have completed on this computer, and the Vercel project is connected to GitHub. The static frontend preview uses its independent GitHub Pages workflow. Use the publishing command above to follow each new commit's actual build and deployment results.
 
 To sign in and deploy in one session, run from the application folder and approve each service in the browser when it opens:
 

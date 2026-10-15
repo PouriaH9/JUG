@@ -34,10 +34,11 @@
     ".next-deploy-final/types/**/*.ts",
     ".next-deploy/types/**/*.ts",
     ".next-dev/types/**/*.ts",
+    ".next-glass-review/types/**/*.ts",
     ".next-preview/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-glass-review/types/**/*.ts"
+    ".next-hero-unpack/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

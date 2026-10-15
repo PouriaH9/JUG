@@ -22,4 +22,4 @@ Real payment integration, licensed video courses, email/SMS and final shipping/r
 
 From this folder, run `.\scripts\save-work.ps1 -Message "Describe your change"` to commit and push to [PouriaH9/JUG](https://github.com/PouriaH9/JUG). GitHub Actions runs the frontend build and backend checks.
 
-The Vercel/Neon configuration is prepared; initial cloud authorization is still required. See [deployment instructions](docs/DEPLOYMENT.md) and [verified deployment status](docs/CLOUD-DEPLOYMENT-STATUS.md). After Vercel Git integration is connected, pushes to `main` publish the production site and pull requests receive preview deployments.
+The full application is live at [jug-liard.vercel.app](https://jug-liard.vercel.app) with Neon PostgreSQL and private image storage. Double-click `publish.cmd` to save, push and wait for publication. See [deployment instructions](docs/DEPLOYMENT.md) and [verified deployment status](docs/CLOUD-DEPLOYMENT-STATUS.md). After Vercel Git integration is connected, pushes to `main` publish the production site and pull requests receive preview deployments.

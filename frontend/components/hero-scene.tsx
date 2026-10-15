@@ -177,7 +177,7 @@ function PackagingScene({packing}:{packing:MotionValue<number>}) {
     const fit=Math.min(viewport.height*.45/.252,viewport.width*.55/.088);
     ref.current.visible=t>.16;
     ref.current.scale.setScalar(fit);
-    ref.current.position.set(0,viewport.height*.14-viewport.height*.65*(1-ease),-.6*(1-ease));
+    ref.current.position.set(0,viewport.height*.14-viewport.height*1.1*(1-ease),-.6*(1-ease));
     ref.current.rotation.set(.08,-.6,0);
     if(cap){const close=clamp((t-.86)/.11);cap.position.y=capY+.12*(1-close*close*(3-2*close));}
   });
@@ -213,19 +213,30 @@ export default function HeroScene({onSeeOptions}:{onSeeOptions:()=>void}) {
   const { scrollYProgress } = useScroll({ target: story, offset: ['start start', 'end end'] });
   const packing = useMotionValue(0);
   const packingAnimation = useRef<ReturnType<typeof animate> | null>(null);
+  const packingTarget=useRef<0|1>(0);
+  const [unpacking,setUnpacking]=useState(false);
+  const [packingVisible,setPackingVisible]=useState(false);
   const [packagingReady,setPackagingReady]=useState(false);
-  useMotionValueEvent(packing, 'change', value=>setPackagingReady(value>=.97));
-  useEffect(()=>()=>packingAnimation.current?.stop(),[]);
-  useMotionValueEvent(scrollYProgress, 'change', value=>{
-    if(value>=.8 && !packingAnimation.current){
-      packingAnimation.current=animate(packing,1,{duration:reduced?0:7,ease:"linear"});
-    }else if(value<.78 && packingAnimation.current){
-      packingAnimation.current.stop();packingAnimation.current=null;packing.set(0);
-    }
+  useMotionValueEvent(packing,'change',value=>{
+    setPackagingReady(value>=.97);
+    setPackingVisible(value>0);
   });
-  const [sceneIndex, setSceneIndex] = useState(0);
-  useMotionValueEvent(scrollYProgress, 'change', value => setSceneIndex(Math.min(4, Math.floor(value * 4 + .5))));
-  const transition = useSpring(scrollYProgress, { stiffness: 90, damping: 25 });
+  useEffect(()=>()=>packingAnimation.current?.stop(),[]);
+  useMotionValueEvent(scrollYProgress,'change',value=>{
+    const target=value>=.8?1:value<.78?0:packingTarget.current;
+    if(target===packingTarget.current)return;
+    packingAnimation.current?.stop();
+    packingTarget.current=target;
+    setUnpacking(target===0);
+    const remaining=Math.abs(target-packing.get());
+    packingAnimation.current=animate(packing,target,{duration:reduced?0:(target===1?7:6)*remaining,ease:'linear'});
+  });
+  const [scrollScene,setScrollScene]=useState(0);
+  useMotionValueEvent(scrollYProgress,'change',value=>setScrollScene(Math.min(4,Math.floor(value*4+.5))));
+  const sceneIndex=packingVisible?4:scrollScene;
+  // Keep the close-up pose stable until the complete reverse packing timeline finishes.
+  const visualProgress=useTransform([scrollYProgress,packing],([scroll,pack])=>Number(pack)>0?Math.max(Number(scroll),.75):Number(scroll));
+  const transition=useSpring(visualProgress,{stiffness:90,damping:25});
   const firstOpacity = useTransform(scrollYProgress, [0, .1, .19], [1, 0, 0]);
   const secondOpacity = useTransform(scrollYProgress, [.1, .22, .3, .4], [0, 1, 1, 0]);
   const leatherLine = useTransform(scrollYProgress, [.39, .495], [0, 1]);
@@ -241,7 +252,8 @@ export default function HeroScene({onSeeOptions}:{onSeeOptions:()=>void}) {
     let scrollTimer:ReturnType<typeof setTimeout> | undefined;
     const snap = (direction: number) => {
       const element = story.current;
-      if (!element || Date.now() < lockedUntil || Date.now() < navigationUntil) return false;
+      const reversing=direction<0&&packingTarget.current===1&&packing.get()>0;
+      if (!element || (Date.now()<lockedUntil&&!reversing) || Date.now()<navigationUntil) return false;
       const start = element.getBoundingClientRect().top + window.scrollY;
       const end = start + element.offsetHeight - window.innerHeight;
       const current = window.scrollY;
@@ -249,16 +261,17 @@ export default function HeroScene({onSeeOptions}:{onSeeOptions:()=>void}) {
       if (direction < 0 && current <= start + 4) return false;
       const step = (end - start) / 4;
       const relative = Math.max(0, (current - start) / step);
-      const next = direction > 0 ? Math.floor(relative + .025) + 1 : Math.ceil(relative - .025) - 1;
+      const leavingJar=direction<0&&packing.get()>0;
+      const next=leavingJar?3:direction>0?Math.floor(relative+.025)+1:Math.ceil(relative-.025)-1;
       const destination = start + Math.max(0, Math.min(4, next)) * step;
       if (Math.abs(destination - current) < 4) return false;
-      lockedUntil = Date.now() + (next === 4 && direction > 0 && !reduced ? 7600 : 1100);
+      lockedUntil=Date.now()+(!reduced&&leavingJar?6500:next===4&&direction>0&&!reduced?7600:1100);
       window.scrollTo({ top: destination, behavior: reduced ? 'instant' : 'smooth' });
       return true;
     };
     const wheel = (event: WheelEvent) => {
       if (Math.abs(event.deltaY) < 2 || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
-      if (Date.now() < lockedUntil) { event.preventDefault(); return; }
+      if(Date.now()<lockedUntil&&!(event.deltaY<0&&packingTarget.current===1&&packing.get()>0)){event.preventDefault();return;}
       if (snap(event.deltaY)) event.preventDefault();
     };
     const startTouch = (event: TouchEvent) => { touchStart = event.touches[0]?.clientY ?? 0; touchStartX=event.touches[0]?.clientX??0; };
@@ -278,9 +291,11 @@ export default function HeroScene({onSeeOptions}:{onSeeOptions:()=>void}) {
     window.addEventListener('keydown',navigation);
     window.addEventListener('scroll', scroll, { passive: true });
     window.addEventListener('wheel', wheel, { passive: false });
+    const guardTouch=(event:TouchEvent)=>{if(Date.now()<lockedUntil&&packingTarget.current===0&&packing.get()>0)event.preventDefault();};
+    window.addEventListener('touchmove',guardTouch,{passive:false});
     window.addEventListener('touchstart', startTouch, { passive: true });
     window.addEventListener('touchend', endTouch, { passive: true });
-    return () => { clearTimeout(scrollTimer); window.removeEventListener('keydown',navigation); window.removeEventListener('scroll', scroll); window.removeEventListener('wheel', wheel); window.removeEventListener('touchstart', startTouch); window.removeEventListener('touchend', endTouch); };
+    return () => { clearTimeout(scrollTimer); window.removeEventListener('keydown',navigation); window.removeEventListener('scroll', scroll); window.removeEventListener('wheel', wheel); window.removeEventListener('touchmove',guardTouch); window.removeEventListener('touchstart', startTouch); window.removeEventListener('touchend', endTouch); };
   }, [reduced]);
   const horizontal = useMotionValue(-.6);
   const vertical = useMotionValue(.35);
@@ -295,7 +310,7 @@ export default function HeroScene({onSeeOptions}:{onSeeOptions:()=>void}) {
       <hemisphereLight args={['#fff6e8', '#b8aaa0', 2]} />
       <directionalLight position={[3, 5, 6]} intensity={3} />
       <directionalLight position={[-4, 1, 3]} intensity={1.5} />
-      <Suspense fallback={null}>{[0, 1, 2].map(index => <LeatherBall key={index} index={index} rig={rig} requested={requestedTrick} onTrickChange={setTrickIndex} progress={reduced ? scrollYProgress : transition} packing={packing} reduced={!!reduced} horizontal={reduced ? horizontal : smoothHorizontal} vertical={reduced ? vertical : smoothVertical} />)}<PackagingScene packing={packing}/></Suspense>
+      <Suspense fallback={null}>{[0, 1, 2].map(index => <LeatherBall key={index} index={index} rig={rig} requested={requestedTrick} onTrickChange={setTrickIndex} progress={reduced ? visualProgress : transition} packing={packing} reduced={!!reduced} horizontal={reduced ? horizontal : smoothHorizontal} vertical={reduced ? vertical : smoothVertical} />)}<PackagingScene packing={packing}/></Suspense>
     </Canvas>
     {sceneIndex===0&&<div className="hero-trick-controls" onPointerDown={()=>{trickInteractionUntil.current=Date.now()+1400;}} role="group" aria-label={t("Juggling tricks")}>
       <motion.div className="hero-trick-swipe" onPanEnd={(_,info)=>{if(Math.abs(info.offset.x)>45&&Math.abs(info.offset.x)>Math.abs(info.offset.y)*1.3)changeTrick(info.offset.x<0?1:-1);}} />
@@ -314,6 +329,6 @@ export default function HeroScene({onSeeOptions}:{onSeeOptions:()=>void}) {
       <div className="hero-detail-copy"><span className="hero-chapter">{t("04 / THE STITCHING")}</span><h2>{t("Small stitches.")}<br/>{t("Strong connection.")}</h2><p>{t("Highly durable thread.")}</p><p>{t("Follow the seam, stitch by stitch.")}<br/>{t("The detail that holds it all together.")}</p></div>
     </motion.div>
     <motion.div className="hero-product-copy hero-packaging-copy" aria-hidden={sceneIndex !== 4 || !packagingReady} initial={false} animate={{opacity:sceneIndex === 4 && packagingReady ? 1 : 0}}><span className="hero-chapter">{t("05 / THE PACKAGING")}</span><h2>{t("Three balls.")}<br/>{t("One home.")}</h2><p>{t("Your JUG set, together in its branded glass jar.")}</p><p>{t("From the first look to the next practice.")}</p><button className="button orange hero-see-options" onClick={onSeeOptions}>{t("See options")}<span aria-hidden="true">↗</span></button></motion.div>
-    <div className="hero-scroll-hint" aria-hidden="true" style={{display:sceneIndex===4&&packagingReady?'none':undefined}}>{sceneIndex === 4 && !packagingReady ? t("PACKING YOUR SET") : t("SCROLL TO EXPLORE")} <span>{sceneIndex === 4 && !packagingReady ? '·' : '↓'}</span></div>
+    <div className="hero-scroll-hint" aria-hidden="true" style={{display:sceneIndex===4&&packagingReady?'none':undefined}}>{sceneIndex === 4 && !packagingReady ? (unpacking?t("UNPACKING YOUR SET"):t("PACKING YOUR SET")) : t("SCROLL TO EXPLORE")} <span>{sceneIndex === 4 && !packagingReady ? '·' : '↓'}</span></div>
   </SceneBoundary></div></div>;
 }
