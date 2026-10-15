@@ -33,17 +33,27 @@ export function trickPosition(trick:number, seconds:number, ball:number):Positio
   if (trick === 3) {
     // Ball-only Mills Mess interpretation: alternating crossed, moving throw lanes.
     const crossing=Math.sin(seconds*Math.PI/1.14);
-    return {x:x*.72+crossing*.38,y:y*.9+.06*Math.sin(seconds*2+ball),z:direction*.6*Math.sin(Math.PI*u)};
+    return {x:x*.72+crossing*.38,y:y*.9+.06*Math.sin(seconds*Math.PI/1.14+ball),z:direction*.6*Math.sin(Math.PI*u)};
   }
   return {x,y,z:direction*.5*Math.sin(Math.PI*u)};
 }
 
+// One complete pattern per turn, followed by a brief connecting movement.
+export const TRICK_DURATIONS = [2.28, 1.8, 1.35, 2.28] as const;
+export const TRICK_TRANSITION = .18;
+export const TRICK_SEQUENCE_DURATION = TRICK_DURATIONS.reduce((sum,duration)=>sum+duration+TRICK_TRANSITION,0);
+
 export function jugglingPosition(seconds:number, ball:number) {
-  const cycle=Math.max(0,seconds)/10;
-  const index=Math.floor(cycle)%JUGGLING_TRICKS.length;
-  const blend=Math.max(0,(cycle%1-.88)/.12);
+  let local = Math.max(0,seconds)%TRICK_SEQUENCE_DURATION;
+  let index = 0;
+  while(index<TRICK_DURATIONS.length-1 && local>=TRICK_DURATIONS[index]+TRICK_TRANSITION){
+    local-=TRICK_DURATIONS[index]+TRICK_TRANSITION;
+    index++;
+  }
+  const duration=TRICK_DURATIONS[index];
+  const a=trickPosition(index,Math.min(local,duration),ball);
+  const blend=Math.min(1,Math.max(0,(local-duration)/TRICK_TRANSITION));
   const weight=smooth(blend);
-  const a=trickPosition(index,seconds,ball);
-  const b=trickPosition((index+1)%4,seconds,ball);
+  const b=trickPosition((index+1)%JUGGLING_TRICKS.length,0,ball);
   return {index,x:a.x+(b.x-a.x)*weight,y:a.y+(b.y-a.y)*weight,z:a.z+(b.z-a.z)*weight};
 }
