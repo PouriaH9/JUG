@@ -82,7 +82,10 @@ function LeatherBall({ horizontal, vertical, index, reduced, progress, packing, 
       const smooth = (v:number) => { const t=clamp(v);return t*t*(3-2*t); };
       const fit=Math.min(viewport.height*.45/.252,viewport.width*.55/.088);
       const jarRotation=new Euler(.08,-.6,0);
-      const rest=new Vector3(0,.041+index*.074-.126,0).applyEuler(jarRotation).multiplyScalar(fit);
+      // Slight leather compression keeps the stack in contact rather than floating apart.
+      const impact=(start:number)=>{const t=clamp((pack-start)/.045);return 4*t*(1-t);};
+      const compression=(index<1?impact(.65):0)+(index<2?impact(.83):0);
+      const rest=new Vector3(0,.041+index*.0718-.126-.0012*compression,0).applyEuler(jarRotation).multiplyScalar(fit);
       rest.y+=viewport.height*.14;
       const ballRadius=.0365*fit;
       if(index===0) {
@@ -91,14 +94,16 @@ function LeatherBall({ horizontal, vertical, index, reduced, progress, packing, 
         const approach=new Vector3(0,viewport.height*.43,0);
         ref.current.position.lerp(approach,zoom);
         ref.current.scale.setScalar(ref.current.scale.x+(ballRadius*scale-ref.current.scale.x)*zoom);
+        const settle=pack>.51?impact(.51)*ballRadius*.035:0;
         ref.current.position.lerp(rest,insert*insert);
+        ref.current.position.y+=settle;
       } else {
         const start=index===1?.5:.68;
         const fall=clamp((pack-start)/.15);
         ref.current.visible=pack>=start;
         const top=viewport.height*.65;
-        // Constant acceleration, followed by a very small damped settling bounce.
-        const bounce=pack>start+.15 ? Math.sin(clamp((pack-start-.15)/.07)*Math.PI)*ballRadius*.07 : 0;
+        // Ballistic fall and a short low rebound: leather absorbs most of the impact.
+        const bounce=pack>start+.15 ? impact(start+.15)*ballRadius*.09 : 0;
         ref.current.position.set(rest.x,top+(rest.y-top)*fall*fall+bounce,rest.z);
         ref.current.scale.setScalar(ballRadius*scale);
         ref.current.rotation.set(.3+fall*1.2,index*.7+fall*2,fall*.4);
@@ -229,7 +234,7 @@ export default function HeroScene({onSeeOptions}:{onSeeOptions:()=>void}) {
     packingTarget.current=target;
     setUnpacking(target===0);
     const remaining=Math.abs(target-packing.get());
-    packingAnimation.current=animate(packing,target,{duration:reduced?0:(target===1?7:6)*remaining,ease:'linear'});
+    packingAnimation.current=animate(packing,target,{duration:reduced?0:(target===1?4.2:3.6)*remaining,ease:'linear'});
   });
   const [scrollScene,setScrollScene]=useState(0);
   useMotionValueEvent(scrollYProgress,'change',value=>setScrollScene(Math.min(4,Math.floor(value*4+.5))));
@@ -265,7 +270,7 @@ export default function HeroScene({onSeeOptions}:{onSeeOptions:()=>void}) {
       const next=leavingJar?3:direction>0?Math.floor(relative+.025)+1:Math.ceil(relative-.025)-1;
       const destination = start + Math.max(0, Math.min(4, next)) * step;
       if (Math.abs(destination - current) < 4) return false;
-      lockedUntil=Date.now()+(!reduced&&leavingJar?6500:next===4&&direction>0&&!reduced?7600:1100);
+      lockedUntil=Date.now()+(!reduced&&leavingJar?4100:next===4&&direction>0&&!reduced?4800:1100);
       window.scrollTo({ top: destination, behavior: reduced ? 'instant' : 'smooth' });
       return true;
     };
