@@ -15,8 +15,9 @@ func TestPostgresInstancesShareState(t *testing.T) {
 		t.Skip("JUG_TEST_DATABASE_URL is not configured")
 	}
 	t.Setenv("DATABASE_URL", dsn)
-	t.Setenv("ADMIN_EMAIL", "test-admin@jug.local")
-	t.Setenv("ADMIN_PASSWORD", "test-integration-password-only")
+	if os.Getenv("ADMIN_EMAIL") == "" || len(os.Getenv("ADMIN_PASSWORD")) < 16 {
+		t.Fatal("integration test requires configured administrator credentials")
+	}
 	a, err := New(context.Background())
 	if err != nil {
 		t.Fatal(err)

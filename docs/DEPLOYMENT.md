@@ -2,9 +2,27 @@
 
 Repository: https://github.com/PouriaH9/JUG
 
+## One step to save and publish
+
+Double-click **`publish.cmd`** in the application folder. It saves your application changes to GitHub with a dated commit message, pushes your current branch, and on `main` waits for this exact commit's application checks and frontend preview deployment. The window stays open with the result and links. No separate local rebuild is needed before pushing; the online workflows build automatically.
+
+For a descriptive message, run:
+
+```powershell
+.\scripts\publish.ps1 -Message "Update the homepage design"
+```
+
+The compatible save command also supports waiting:
+
+```powershell
+.\scripts\save-work.ps1 -Message "Update the homepage design" -Wait
+```
+
+Without `-Wait`, saving and pushing returns immediately. Waiting reports workflow failures, network errors, or a 15-minute timeout without losing the GitHub commit. A successful preview prints a phone-ready URL with the commit in its query string, such as `https://pouriah9.github.io/JUG/?v=COMMIT`. This confirms the static frontend preview; follow the separate Vercel project link for the full application's deployment status. Feature branches remain separate until merged to `main`.
+
 ## Initial deployment or resume after sign-in
 
-The deployment setup is prepared locally. A public production URL is pending successful Neon and Vercel authorization and deployment; this document does not confirm either has completed.
+Neon and Vercel sign-in have completed on this computer. The full production deployment is being configured; this document does not confirm a successful live deployment. The static frontend preview uses its independent GitHub Pages workflow.
 
 To sign in and deploy in one session, run from the application folder and approve each service in the browser when it opens:
 

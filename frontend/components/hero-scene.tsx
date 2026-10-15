@@ -1,7 +1,7 @@
 'use client';
 import {assetPath} from './preview-client';
 import {useLanguage} from './language';
-import {jugglingPosition, JUGGLING_TRICKS} from './juggling-patterns';
+import {createJugglingController, type JugglingController, JUGGLING_TRICKS} from './juggling-patterns';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { ContactShadows, useGLTF, Environment, Lightformer } from '@react-three/drei';
@@ -9,7 +9,7 @@ import { motion, animate, useMotionValue, useSpring, useReducedMotion, useScroll
 import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Box3, Vector3, Euler, Quaternion, FrontSide, type Group, type Mesh, type MeshPhysicalMaterial } from 'three';
 
-function LeatherBall({ horizontal, vertical, index, reduced, progress, packing, onTrickChange }: { onTrickChange:(index:number)=>void; packing: MotionValue<number>; horizontal: MotionValue<number>; vertical: MotionValue<number>; index: number; reduced: boolean; progress: MotionValue<number> }) {
+function LeatherBall({ horizontal, vertical, index, reduced, progress, packing, onTrickChange, rig, requested }: { rig:JugglingController; requested:MotionValue<number>; onTrickChange:(index:number)=>void; packing: MotionValue<number>; horizontal: MotionValue<number>; vertical: MotionValue<number>; index: number; reduced: boolean; progress: MotionValue<number> }) {
   const { scene } = useGLTF(assetPath('/assets/jug-brown-ball-web.glb'));
   const { viewport, invalidate } = useThree();
   const ref = useRef<Group>(null);
@@ -25,19 +25,21 @@ function LeatherBall({ horizontal, vertical, index, reduced, progress, packing, 
     return { object, scale: 2 / Math.max(size.x, size.y, size.z), center: bounds.getCenter(new Vector3()) };
   }, [scene]);
   useEffect(() => {
+    const offRequest=requested.on('change',()=>invalidate());
     const offX = horizontal.on('change', () => invalidate());
     const offY = vertical.on('change', () => invalidate());
     const offPacking = packing.on('change', () => invalidate());
     const offProgress = progress.on('change', () => invalidate());
-    return () => { offX(); offY(); offProgress(); offPacking(); };
-  }, [horizontal, vertical, progress, packing, invalidate]);
-  useFrame((_, delta) => {
+    return () => { offX(); offY(); offProgress(); offPacking(); offRequest(); };
+  }, [horizontal, vertical, progress, packing, requested, invalidate]);
+  useFrame(({clock}, delta) => {
     if (!ref.current) return;
     if(!reduced) animationTime.current += Math.min(delta,.04);
     const elapsed=animationTime.current;
     const span=viewport.width*.18;
     const height=Math.min(viewport.height*.30,viewport.width*.62);
-    const trick=jugglingPosition(reduced?0:elapsed,index);
+    const frame=rig.frame(clock.elapsedTime,delta,requested.get(),reduced);
+    const trick={...frame.positions[index],index:frame.index};
     const perspectiveScale=1/(1-trick.z/8);
     const spin=reduced?0:elapsed*4.2+index*1.2;
     ref.current.position.set(trick.x*span,viewport.height*.12+trick.y*height,trick.z);
@@ -194,9 +196,18 @@ class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean
   }
 }
 
-export default function HeroScene() {
+export default function HeroScene({onSeeOptions}:{onSeeOptions:()=>void}) {
   const {t}=useLanguage();
   const [trickIndex,setTrickIndex]=useState(0);
+  const [selectedTrick,setSelectedTrick]=useState(0);
+  const requestedTrick=useMotionValue(0);
+  const trickInteractionUntil=useRef(0);
+  const rig=useMemo(()=>createJugglingController(),[]);
+  const changeTrick=(direction:number)=>{
+    trickInteractionUntil.current=Date.now()+1400;
+    const next=(requestedTrick.get()+direction+JUGGLING_TRICKS.length)%JUGGLING_TRICKS.length;
+    requestedTrick.set(next);setSelectedTrick(next);
+  };
   const reduced = useReducedMotion();
   const story = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: story, offset: ['start start', 'end end'] });
@@ -225,6 +236,7 @@ export default function HeroScene() {
     let lockedUntil = 0;
     let navigationUntil = 0;
     let touchStart = 0;
+    let touchStartX = 0;
     let previousScroll = window.scrollY;
     let scrollTimer:ReturnType<typeof setTimeout> | undefined;
     const snap = (direction: number) => {
@@ -249,17 +261,18 @@ export default function HeroScene() {
       if (Date.now() < lockedUntil) { event.preventDefault(); return; }
       if (snap(event.deltaY)) event.preventDefault();
     };
-    const startTouch = (event: TouchEvent) => { touchStart = event.touches[0]?.clientY ?? 0; };
+    const startTouch = (event: TouchEvent) => { touchStart = event.touches[0]?.clientY ?? 0; touchStartX=event.touches[0]?.clientX??0; };
     const endTouch = (event: TouchEvent) => {
       const distance = touchStart - (event.changedTouches[0]?.clientY ?? touchStart);
-      if (Math.abs(distance) > 15) snap(distance);
+      const horizontalDistance=touchStartX-(event.changedTouches[0]?.clientX??touchStartX);
+      if (Math.abs(distance)>15 && Math.abs(distance)>Math.abs(horizontalDistance)*1.2) snap(distance);
     };
     const scroll = () => {
       const current = window.scrollY;
       const direction = current - previousScroll;
       previousScroll = current;
       clearTimeout(scrollTimer);
-      if (Math.abs(direction) > .5) scrollTimer=setTimeout(()=>snap(direction),120);
+      if (Math.abs(direction) > .5 && Date.now()>trickInteractionUntil.current) scrollTimer=setTimeout(()=>{if(Date.now()>trickInteractionUntil.current)snap(direction);},120);
     };
     const navigation = (event:KeyboardEvent) => { if(['Home','End','PageUp','PageDown'].includes(event.key)) navigationUntil=Date.now()+1800; };
     window.addEventListener('keydown',navigation);
@@ -276,15 +289,21 @@ export default function HeroScene() {
   return <div className="hero-scroll-story" ref={story}><div className="hero-sticky-stage"><SceneBoundary>
     <Canvas orthographic camera={{ position: [0, 0, 8], zoom: 85, near: .1, far: 30 }}
       dpr={[1, 2]} frameloop={reduced ? "demand" : "always"} gl={{ antialias: true, alpha: true }}
-      aria-label={t("Three brown leather balls juggling in a cascade")}>
+      aria-label={t("Three brown leather balls")+' — '+t(JUGGLING_TRICKS[trickIndex])}>
       <Environment resolution={256}><Lightformer position={[0,4,3]} scale={[8,4,1]} intensity={3}/><Lightformer position={[-4,1,2]} scale={[2,6,1]} intensity={2}/><Lightformer position={[4,1,-2]} scale={[2,6,1]} intensity={3}/></Environment>
       <ambientLight intensity={1.5} />
       <hemisphereLight args={['#fff6e8', '#b8aaa0', 2]} />
       <directionalLight position={[3, 5, 6]} intensity={3} />
       <directionalLight position={[-4, 1, 3]} intensity={1.5} />
-      <Suspense fallback={null}>{[0, 1, 2].map(index => <LeatherBall key={index} index={index} onTrickChange={setTrickIndex} progress={reduced ? scrollYProgress : transition} packing={packing} reduced={!!reduced} horizontal={reduced ? horizontal : smoothHorizontal} vertical={reduced ? vertical : smoothVertical} />)}<PackagingScene packing={packing}/></Suspense>
+      <Suspense fallback={null}>{[0, 1, 2].map(index => <LeatherBall key={index} index={index} rig={rig} requested={requestedTrick} onTrickChange={setTrickIndex} progress={reduced ? scrollYProgress : transition} packing={packing} reduced={!!reduced} horizontal={reduced ? horizontal : smoothHorizontal} vertical={reduced ? vertical : smoothVertical} />)}<PackagingScene packing={packing}/></Suspense>
     </Canvas>
-    <motion.div className="hero-product-copy" aria-hidden={sceneIndex !== 0} style={{opacity:firstOpacity,y:firstY}}><span className="hero-trick-label">0{trickIndex+1} / {t(JUGGLING_TRICKS[trickIndex])}</span><h1>{t("juggling, balls")}</h1><p>{t("handmade  goat leather")}</p><p>{t("Features highly durable Thread")}</p></motion.div>
+    {sceneIndex===0&&<div className="hero-trick-controls" onPointerDown={()=>{trickInteractionUntil.current=Date.now()+1400;}} role="group" aria-label={t("Juggling tricks")}>
+      <motion.div className="hero-trick-swipe" onPanEnd={(_,info)=>{if(Math.abs(info.offset.x)>45&&Math.abs(info.offset.x)>Math.abs(info.offset.y)*1.3)changeTrick(info.offset.x<0?1:-1);}} />
+      <button className="hero-trick-arrow hero-trick-prev" aria-label={t("Previous trick")} onClick={()=>changeTrick(-1)}><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
+      <button className="hero-trick-arrow hero-trick-next" aria-label={t("Next trick")} onClick={()=>changeTrick(1)}><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button>
+      <div className="hero-trick-status" aria-live="polite">{selectedTrick!==trickIndex?t("Preparing next trick"):t("Swipe to change trick")}</div>
+    </div>}
+    <motion.div className="hero-product-copy" aria-hidden={sceneIndex !== 0} style={{opacity:firstOpacity,y:firstY}}><span className="hero-trick-label">{String(selectedTrick+1).padStart(2,'0')} / {JUGGLING_TRICKS.length} · {t(JUGGLING_TRICKS[selectedTrick])}</span><h1>{t("juggling, balls")}</h1><p>{t("handmade  goat leather")}</p><p>{t("Features highly durable Thread")}</p></motion.div>
     <motion.div className="hero-product-copy hero-second-copy" aria-hidden={sceneIndex !== 1} style={{opacity:secondOpacity,y:secondY}}><span className="hero-chapter">{t("02 / CRAFT IN YOUR HANDS")}</span><h2>{t("Every stitch.")}<br/>{t("Every throw.")}</h2><p>{t("handmade  goat leather")}</p><p>{t("Features highly durable Thread")}</p></motion.div>
     <motion.div className="hero-material-callout" aria-hidden={sceneIndex !== 2} initial={false} animate={{opacity:sceneIndex === 2 ? 1 : 0}} transition={{duration:.45}}>
       <svg className="hero-detail-line" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><motion.path d="M 38 30 L 68 43 L 84 43" pathLength={1} style={{pathLength:leatherLine}}/><circle cx="38" cy="30" r=".6"/></svg>
@@ -294,7 +313,7 @@ export default function HeroScene() {
       <svg className="hero-detail-line" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><motion.path d="M 43 32 L 68 45 L 84 45" pathLength={1} style={{pathLength:stitchLine}}/><circle cx="43" cy="32" r=".6"/></svg>
       <div className="hero-detail-copy"><span className="hero-chapter">{t("04 / THE STITCHING")}</span><h2>{t("Small stitches.")}<br/>{t("Strong connection.")}</h2><p>{t("Highly durable thread.")}</p><p>{t("Follow the seam, stitch by stitch.")}<br/>{t("The detail that holds it all together.")}</p></div>
     </motion.div>
-    <motion.div className="hero-product-copy hero-packaging-copy" aria-hidden={sceneIndex !== 4 || !packagingReady} initial={false} animate={{opacity:sceneIndex === 4 && packagingReady ? 1 : 0}}><span className="hero-chapter">{t("05 / THE PACKAGING")}</span><h2>{t("Three balls.")}<br/>{t("One home.")}</h2><p>{t("Your JUG set, together in its branded glass jar.")}</p><p>{t("From the first look to the next practice.")}</p></motion.div>
-    <div className="hero-scroll-hint" aria-hidden="true">{sceneIndex === 4 && !packagingReady ? t("PACKING YOUR SET") : t("SCROLL TO EXPLORE")} <span>{sceneIndex === 4 && !packagingReady ? '·' : '↓'}</span></div>
+    <motion.div className="hero-product-copy hero-packaging-copy" aria-hidden={sceneIndex !== 4 || !packagingReady} initial={false} animate={{opacity:sceneIndex === 4 && packagingReady ? 1 : 0}}><span className="hero-chapter">{t("05 / THE PACKAGING")}</span><h2>{t("Three balls.")}<br/>{t("One home.")}</h2><p>{t("Your JUG set, together in its branded glass jar.")}</p><p>{t("From the first look to the next practice.")}</p><button className="button orange hero-see-options" onClick={onSeeOptions}>{t("See options")}<span aria-hidden="true">↗</span></button></motion.div>
+    <div className="hero-scroll-hint" aria-hidden="true" style={{display:sceneIndex===4&&packagingReady?'none':undefined}}>{sceneIndex === 4 && !packagingReady ? t("PACKING YOUR SET") : t("SCROLL TO EXPLORE")} <span>{sceneIndex === 4 && !packagingReady ? '·' : '↓'}</span></div>
   </SceneBoundary></div></div>;
 }

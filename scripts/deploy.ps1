@@ -67,7 +67,7 @@ function Invoke-DeploymentCli {
         $commandErrors = $errorTask.GetAwaiter().GetResult()
         if ($process.ExitCode -ne 0) {
             # Only the project's explicit API HTTP 404 permits first-time creation.
-            if ($AllowNotFound -and $commandOutput -match '(?m)^HTTP 404(?:\s|$)') { return $null }
+            if ($AllowNotFound -and ($commandOutput -match '(?m)^HTTP 404(?:\s|$)' -or $commandErrors -match '(?m)^Error: Project not found\. \(404\)\s*$')) { return $null }
             # CLI diagnostics can contain credential values, so never echo them here.
             throw "$Cli command failed (exit $($process.ExitCode)). Finish '$Cli login' in your browser, verify project access, then rerun. Secret-bearing command output was hidden."
         }
@@ -124,16 +124,16 @@ try {
     }
 
     Write-Host 'Linking Vercel project and configuring Services...'
-    $existingProject = Invoke-DeploymentCli vercel @('api', '/v9/projects/jug', '--include', '--silent', '--scope', 'pouriah9s-projects') -AllowNotFound
+    $existingProject = Invoke-DeploymentCli vercel @('api', '/v9/projects/jug', '--raw', '--scope', 'pouriah9s-projects') -AllowNotFound
     if (-not $existingProject) {
-        $createBody = @{ name = 'jug'; framework = 'services'; nodeVersion = '22.x' } | ConvertTo-Json -Compress
+        $createBody = @{ name = 'jug'; framework = 'services' } | ConvertTo-Json -Compress
         Invoke-DeploymentCli vercel @('api', '/v10/projects', '--method', 'POST', '--input', '-', '--silent', '--scope', 'pouriah9s-projects') $createBody | Out-Null
         Write-Host 'Created the jug project in pouriah9s-projects.'
     }
     Invoke-DeploymentCli vercel @('link', '--yes', '--project', 'jug', '--team', 'pouriah9s-projects', '--scope', 'pouriah9s-projects') | Out-Null
     $projectLink = Get-Content -LiteralPath '.vercel/project.json' -Raw | ConvertFrom-Json
     if (-not $projectLink.projectId -or $projectLink.projectName -ne 'jug') { throw 'Unexpected Vercel project link. Check .vercel/project.json.' }
-    $projectBody = @{ framework = 'services'; rootDirectory = $null; nodeVersion = '22.x' } | ConvertTo-Json -Compress
+    $projectBody = @{ framework = 'services'; rootDirectory = $null } | ConvertTo-Json -Compress
     Invoke-DeploymentCli vercel @('api', "/v9/projects/$($projectLink.projectId)", '--method', 'PATCH', '--input', '-', '--silent', '--scope', 'pouriah9s-projects') $projectBody | Out-Null
     $projectDetails = Invoke-DeploymentCli vercel @('api', "/v9/projects/$($projectLink.projectId)", '--raw', '--scope', 'pouriah9s-projects') | ConvertFrom-Json
     if ($projectDetails.framework -ne 'services') { throw 'Vercel did not select the Services framework.' }
