@@ -7,3 +7,13 @@ node_modules/
 .env.local
 backend/data/
 backend/jug-demo.json
+.neon
+.vercel/
+.next-*/
+.env.*
+!.env.example
+*.log
+frontend/*-preview.png
+frontend/Leather_Balls_Website_blender/
+/assets/
+preview.jpg

@@ -1,0 +1,15 @@
+{
+  "name": "jug",
+  "private": true,
+  "engines": { "node": "22.x" },
+  "scripts": {
+    "build": "npm --prefix frontend run build",
+    "dev": "npm --prefix frontend run dev",
+    "start": "npm --prefix frontend run start",
+    "test:backend": "cd backend && go test ./..."
+  },
+  "dependencies": {
+    "@neon/config": "^1.9.1",
+    "@neon/env": "^1.6.2"
+  }
+}
