@@ -21,3 +21,4 @@ preview.jpg
 
 .vercel
 .env*
+backend/.local-media/

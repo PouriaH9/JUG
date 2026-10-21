@@ -18,7 +18,7 @@ A shared motion controller finishes every ball's current flight, catches at the 
 
 These are ball-only product animations, not instructional demonstrations. Mills Mess and Windmill depend heavily on arm crossings, which are absent in this presentation. Their paths are visual interpretations. Fake Columns and Yo-Yo were researched but excluded because their defining actions require visibly carrying a ball above the baseline. They would contradict this presentation's invisible-hands-at-the-bottom constraint.
 
-Flight arcs use a constant-acceleration parabola through the central part of each throw, with matched catch/release joins. The renderer keeps ball spin continuous and scales depth from the active path. Respect reduced-motion preferences by displaying a stationary selection.
+Flight arcs use constant downward acceleration throughout each throw, with constant horizontal velocity. Flight duration determines height under the same normalized gravity for every pattern; lower throws have shorter airtime and longer hand dwell. Catch and release change velocity at the invisible hand, with a smooth baseline carry between throws. Fixed, separated depth lanes preserve the ballistic paths without collision correction; all balls have equal apparent size outside crossings. Each throw forecasts projected overlaps across its flight. A rear ball on a crossing trajectory gradually shrinks from release over the first 55 percent of airtime, by up to 22 percent, and smoothly restores full size over the last 30 percent before catch. Throws without crossings remain full size. Rotation advances at a modest constant rate only in flight and pauses during catches and handoffs. Respect reduced-motion preferences by displaying a stationary selection.
 
 ## Validation
 

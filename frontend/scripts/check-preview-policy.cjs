@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const vm=require('node:vm');
+const ts=require('typescript');
+const loaded={exports:{}};
+vm.runInNewContext(ts.transpileModule(fs.readFileSync(path.join(__dirname,'../components/preview-policy.ts'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{module:loaded,exports:loaded.exports});
+const {choosePreviewMode:choose}=loaded.exports;
+assert.equal(choose({}),'3d');
+assert.equal(choose({saveData:true}),'static');
+assert.equal(choose({memory:2}),'static');
+assert.equal(choose({memory:4}),'3d');
+assert.equal(choose({reducedMotion:true}),'static');
+assert.equal(choose({preference:'3d',saveData:true,memory:1,reducedMotion:true}),'3d','Explicit user choice should override automatic quality policy');
+assert.equal(choose({preference:'static',memory:8}),'static');
+assert.equal(choose({preference:'invalid'}),'3d');
+console.log('PASS: unknown devices, Save-Data, memory thresholds, reduced motion, explicit overrides and invalid preferences.');

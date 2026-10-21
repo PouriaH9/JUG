@@ -31,14 +31,27 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    ".next-admin-product-check/types/**/*.ts",
+    ".next-agent-final/types/**/*.ts",
+    ".next-agent-performance/types/**/*.ts",
     ".next-deploy-final/types/**/*.ts",
     ".next-deploy/types/**/*.ts",
     ".next-dev/types/**/*.ts",
+    ".next-editorial-review/types/**/*.ts",
     ".next-glass-review/types/**/*.ts",
+    ".next-hero-unpack/types/**/*.ts",
+    ".next-mobile-final/types/**/*.ts",
+    ".next-mobile-performance/types/**/*.ts",
+    ".next-mobile-preview/types/**/*.ts",
+    ".next-performance-delivery/types/**/*.ts",
+    ".next-performance-verified/types/**/*.ts",
     ".next-preview/types/**/*.ts",
+    ".next-product-details/types/**/*.ts",
+    ".next-release-review/types/**/*.ts",
+    ".next-review/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-hero-unpack/types/**/*.ts"
+    ".next-media-check/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

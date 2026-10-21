@@ -1,0 +1,17 @@
+/* Loading never blocks navigation. The percentage describes the active model. */
+.juggling-loading{display:inline-flex;flex-direction:column;align-items:center;gap:10px;color:var(--ink);vertical-align:middle}
+.juggling-loader>span{background:currentColor}
+.juggling-progress{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:15px;font-variant-numeric:tabular-nums;line-height:1.5}
+.juggling-progress small{font-size:11px;color:var(--muted);white-space:nowrap}
+.hero-balls-loading{pointer-events:none}
+.hero-sticky-stage[data-scene-active=false] .stage-beam{animation-play-state:paused}
+.hero-experience{position:relative;width:100%}
+/* Full-screen blurred, blended layers compete with WebGL on phone GPUs. */
+@media(max-width:720px),(pointer:coarse){
+  .stage-beam{animation:none;will-change:auto;filter:none!important;mix-blend-mode:normal!important}
+  .stage-halo,.stage-floor,.stage-wing{filter:none!important;transition:none}
+  .stage-grain{display:none}
+  .navigation-toggle{backdrop-filter:none}
+}
+
+.hero-scene-error{min-height:100svh;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:16px;padding:var(--page-gutter);text-align:center}.hero-scene-error p{flex-basis:100%}

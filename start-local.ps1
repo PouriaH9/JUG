@@ -1,6 +1,7 @@
 param([switch]$Demo)
 $ErrorActionPreference = 'Stop'
 $projectRoot = $PSScriptRoot
+if (-not $env:JUG_LOCAL_MEDIA_DIR) { $env:JUG_LOCAL_MEDIA_DIR = Join-Path $projectRoot 'backend/.local-media' }
 $bundledNode = 'C:\Users\pouri\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin'
 if (Test-Path -LiteralPath $bundledNode) { $env:PATH = "$bundledNode;$env:PATH" }
 $nodeExecutable = (Get-Command node.exe).Source

@@ -1,0 +1,35 @@
+/* A fresh entrance on each page load; the 3D scene preloads behind it. */
+/* Keep the canvas and backdrop width fixed when the intro releases its scroll lock. */
+html{scrollbar-gutter:stable}
+.entrance-splash{opacity:1;transition:opacity 1.2s cubic-bezier(.22,1,.36,1);pointer-events:none;position:fixed;inset:0;z-index:80;background:radial-gradient(ellipse at 50% 33%,#60432a22,transparent 58%),linear-gradient(180deg,#0d0d0d 0%,#1c1712 49%,#12100e 100%)}
+.site-experience:is([data-intro-phase="1"],[data-intro-phase="2"]) .entrance-splash{opacity:0}
+/* Soften the reveal even when the scene module loads after the intro. */
+.hero-sticky-stage>.stage-atmosphere{animation:jug-atmosphere-reveal 1.6s ease-out both}
+@keyframes jug-atmosphere-reveal{from{opacity:0}to{opacity:1}}
+html[data-theme=light] .entrance-splash{background:radial-gradient(ellipse at 48% 30%,#fffefb 0%,#fffaf0 26%,transparent 64%),linear-gradient(150deg,#e5dccb 0%,#f9f4e9 32%,#eee3d1 63%,#fffdf8 100%)}
+.entrance-splash .stage-brand-mark{animation:jug-logo-settle 2.7s ease-in-out both}
+.entrance-splash .stage-brand-mark img{animation:jug-logo-turn 2.4s cubic-bezier(.45,0,.25,1) both;transform-origin:center;backface-visibility:visible}
+@keyframes jug-logo-turn{from{transform:perspective(1000px) rotateY(-180deg) scale(.18)}to{transform:perspective(1000px) rotateY(0deg) scale(1)}}
+@keyframes jug-logo-settle{0%,70%{opacity:.7}100%{opacity:.16}}
+html[data-theme=light] .entrance-splash .stage-brand-mark{animation-name:jug-logo-settle-light}
+@keyframes jug-logo-settle-light{0%,70%{opacity:.7}100%{opacity:.2}}
+.site-experience .navigation-toggle{transition:opacity .4s ease}
+.site-experience[data-intro-phase="0"] .site-header{pointer-events:none}
+.site-experience[data-intro-phase="0"] .navigation-toggle{opacity:0;visibility:hidden}
+.site-experience .hero-scene-canvas{transition:opacity .4s ease}
+.site-experience:is([data-intro-phase="0"],[data-intro-phase="1"],[data-intro-phase="2"]) .hero-scene-canvas,
+.site-experience .hero-sticky-stage[data-balls-ready="false"] .hero-scene-canvas{opacity:0;pointer-events:none}
+.site-experience:is([data-intro-phase="0"],[data-intro-phase="1"]) .hero-intro-copy{visibility:hidden}
+.hero-sticky-stage .hero-intro-copy h2{ text-shadow:0 3px 22px #0004 }
+.hero-sticky-stage .hero-intro-copy p{ text-shadow:0 2px 14px #0003 }
+.hero-loading{position:relative;min-height:100svh;display:grid;place-items:center}
+.site-experience:not([data-intro-phase="3"]) .hero-loading>.juggling-loader{visibility:hidden}
+.hero-balls-loading{position:absolute;z-index:3;top:38%;left:50%;transform:translate(-50%,-50%)}
+.juggling-loader{display:inline-block;position:relative;width:52px;height:42px;flex-shrink:0;vertical-align:middle}
+.juggling-loader>span{position:absolute;left:22px;top:30px;width:7px;height:7px;border-radius:50%;background:#111;animation:jug-loading-cascade 1.2s linear infinite}
+.juggling-loader>span:nth-child(2){animation-delay:-.4s}
+.juggling-loader>span:nth-child(3){animation-delay:-.8s}
+@keyframes jug-loading-cascade{0%{transform:translate(-17px,0)}25%{transform:translate(0,-29px)}50%{transform:translate(17px,0)}75%{transform:translate(0,-14px)}100%{transform:translate(-17px,0)}}
+.operation-loading{position:fixed;z-index:200;bottom:24px;left:50%;transform:translateX(-50%);padding:6px 16px;background:#faf5ebed;border-radius:40px;box-shadow:0 4px 24px #0002;pointer-events:none}
+.route-loading{min-height:100svh;display:grid;place-items:center}
+@media(prefers-reduced-motion:reduce){.entrance-splash{transition:none}.hero-sticky-stage>.stage-atmosphere{animation:none}.entrance-splash .stage-brand-mark{animation-duration:.01ms}.entrance-splash .stage-brand-mark img{animation:none}.juggling-loader>span{animation:none}.juggling-loader>span:nth-child(1){transform:translate(-15px,0)}.juggling-loader>span:nth-child(2){transform:translate(0,-12px)}.juggling-loader>span:nth-child(3){transform:translate(15px,0)}.site-experience .navigation-toggle,.site-experience .hero-scene-canvas{transition:none}}

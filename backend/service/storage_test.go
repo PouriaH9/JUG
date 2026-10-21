@@ -130,3 +130,46 @@ func TestNeonStorageRoundTrip(t *testing.T) {
 		t.Fatalf("public image proxy failed: %d", w.Code)
 	}
 }
+
+func TestLocalProductImages(t *testing.T) {
+	t.Setenv("JUG_LOCAL_MEDIA_DIR", t.TempDir())
+	t.Setenv("VERCEL", "")
+	storage, err := storageFromEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	key := "products/" + id() + ".png"
+	data := tinyPNG()
+	if err = storage.put(context.Background(), key, data, "image/png"); err != nil {
+		t.Fatal(err)
+	}
+	// A fresh store instance must read uploaded images after an API restart.
+	reopened, err := storageFromEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, _, err := reopened.get(context.Background(), key)
+	if err != nil || !bytes.Equal(got, data) {
+		t.Fatal("local image did not persist", err)
+	}
+	w := request(testApp(t), "GET", "media/"+key, "", "")
+	if w.Code != 200 || !bytes.Equal(w.Body.Bytes(), data) {
+		t.Fatalf("local image serving: %d", w.Code)
+	}
+	for _, unsafe := range []string{"../outside.png", "products/../../private", "/tmp/file.png"} {
+		if err := storage.put(context.Background(), unsafe, data, "image/png"); err == nil {
+			t.Fatal("unsafe local key accepted")
+		}
+	}
+	if err := storage.remove(context.Background(), key); err != nil {
+		t.Fatal(err)
+	}
+	if w := request(testApp(t), "GET", "media/"+key, "", ""); w.Code != 404 {
+		t.Fatalf("missing local image: %d", w.Code)
+	}
+	t.Setenv("VERCEL", "1")
+	t.Setenv("AWS_ENDPOINT_URL_S3", "")
+	if _, err := storageFromEnv(); err == nil {
+		t.Fatal("deployed API used local media storage")
+	}
+}

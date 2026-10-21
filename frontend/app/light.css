@@ -1,0 +1,37 @@
+/* Optional light palette. All overrides are scoped; the original dark stage remains intact. */
+html[data-theme=light]{--cream:#fff;--ink:#29231e;--muted:#685f56;--line:#ded8d0;--text-primary:#29231e;--text-secondary:#685f56;--text-accent:#925021;--surface-raised:#fff;--border-soft:#ded8d0;color-scheme:light}
+html[data-theme=light] :is(body,main,.hero,.hero-sticky-stage,.inner-page){background:#fff}
+html[data-theme=light] .hero-sticky-stage>.stage-atmosphere{background:radial-gradient(ellipse at 48% 30%,#fffefb 0%,#fffaf0 26%,transparent 64%),linear-gradient(150deg,#e5dccb 0%,#f9f4e9 32%,#eee3d1 63%,#fffdf8 100%)}
+html[data-theme=light] .stage-atmosphere:after{background:radial-gradient(ellipse at 50% 38%,transparent 28%,#8c6d4720 100%)}
+html[data-theme=light] .stage-beam{mix-blend-mode:multiply;background:conic-gradient(from 155deg at 50% 0%,transparent 0deg,#b38a5100 4deg,#c7a77630 12deg,#af874b38 25deg,#c7a77620 38deg,#b38a5100 46deg,transparent 50deg);filter:blur(24px)}
+html[data-theme=light] .stage-beam-right{background:conic-gradient(from 155deg at 50% 0%,transparent 0deg,#b79c7100 4deg,#b79c7118 12deg,#ae8a5330 25deg,#b79c7118 38deg,#b79c7100 46deg,transparent 50deg)}
+html[data-theme=light] .stage-halo{background:radial-gradient(ellipse at 50% 55%,#fffefa99,transparent 64%);opacity:.9}
+html[data-theme=light] .stage-floor{background:radial-gradient(ellipse,#a6834b30 0%,#b3966b18 35%,transparent 70%);opacity:.8}
+html[data-theme=light] .stage-wing{background:radial-gradient(ellipse at 50% 45%,#8e795d60,transparent 68%);opacity:.28}
+html[data-theme=light] .stage-grain{mix-blend-mode:multiply;filter:invert(1);opacity:.16}
+html[data-theme=light] .stage-air{opacity:.88;mix-blend-mode:multiply}
+html[data-theme=light] .page-air .stage-air{opacity:.45}
+html[data-theme=light] .stage-arena{background:radial-gradient(ellipse,#c7a56918,transparent 67%)}
+html[data-theme=light] .stage-arena-rim{border-color:#926b3f38;box-shadow:0 -3px 22px #926b3f0b,inset 0 2px 18px #926b3f08}
+html[data-theme=light] .stage-arena-inner{border-color:#926b3f1a}
+html[data-theme=light] .hero-sticky-stage .hero-trick-title .hero-trick-backdrop{color:var(--text-accent);text-shadow:none}
+html[data-theme=light] .hero-sticky-stage :is(.hero-product-copy,.hero-detail-copy) h2{color:var(--text-primary);text-shadow:none}
+html[data-theme=light] .hero-sticky-stage :is(.hero-product-copy,.hero-detail-copy) p,html[data-theme=light] :is(.trick-count,.product-tag,.visual-note,.hero-trick-status){color:var(--text-secondary)}
+html[data-theme=light] .hero-trick-arrow{color:var(--text-primary)}
+html[data-theme=light] .hero-material-callout{background:linear-gradient(to bottom,transparent 45%,#fffdf820 55%,#fffdf8e8 85%)}
+html[data-theme=light] .hero-detail-line{color:var(--text-accent);stroke:var(--text-accent)}
+html[data-theme=light] .navigation-toggle{background:#fff;border-color:var(--border-soft)}
+html[data-theme=light] .navigation-logo{filter:brightness(0) saturate(100%)}
+html[data-theme=light] header.site-header nav.navigation-panel{background:#fffffff5;box-shadow:0 16px 50px #29231e18;color:var(--text-primary)}
+html[data-theme=light] header.site-header .navigation-panel button:hover,html[data-theme=light] header.site-header .navigation-panel button.active{background:#f6f1eb}
+html[data-theme=light] :is(.product-art,.art-1,.art-2,.product-detail-art){background:#f6f3ef;border-color:var(--border-soft)}
+html[data-theme=light] :is(.modal,.cart-drawer,.modal-heading button,.modal-close,.form-card,.checkout-summary,.payment-card,.summary-card,.order-card,.course-card,.lesson-panel,.toast,.empty-state,.admin-stats>div){background:#fff;color:var(--text-primary);border-color:var(--border-soft)}
+html[data-theme=light] :is(.modal-heading button:hover,.modal-close:hover,.lesson-list button:hover){background:#f6f3ef}
+html[data-theme=light] :is(input,textarea,select){background:#fff;color:var(--text-primary);border-color:var(--border-soft)}
+html[data-theme=light] :is(input,textarea)::placeholder{color:#776c61}
+html[data-theme=light] .test-note{color:#865020!important}
+html[data-theme=light] :is(.badge,.connection-note){background:#f6eee3;color:#75441f;border-color:#dfc9b0}
+html[data-theme=light] .delete{color:#a33324}
+html[data-theme=light] .progress-track{background:#e7e1d9}
+html[data-theme=light] footer{background:#fff;color:var(--text-primary);border-color:var(--border-soft)}
+@media(prefers-contrast:more){html[data-theme=light]{--text-secondary:#3c332b;--border-soft:#786b5c}html[data-theme=light] :is(.trick-overline,.trick-count){color:#633b1b}}

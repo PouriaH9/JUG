@@ -13,10 +13,13 @@ import (
 	"fmt"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"golang.org/x/crypto/bcrypt"
+	"io"
 	"log"
 	"net"
 	"net/http"
+	"net/mail"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -51,18 +54,25 @@ func authoredLessons() map[string][]map[string]string {
 }
 
 type Product struct {
-	ID          string  `json:"id"`
-	Name        string  `json:"name"`
-	Slug        string  `json:"slug"`
-	Description string  `json:"description"`
-	Price       int     `json:"price"`
-	Category    string  `json:"category"`
-	Color       string  `json:"color"`
-	Weight      int     `json:"weight"`
-	Stock       int     `json:"stock"`
-	Image       string  `json:"image"`
-	Featured    bool    `json:"featured"`
-	Rating      float64 `json:"rating"`
+	ID            string   `json:"id"`
+	Name          string   `json:"name"`
+	Slug          string   `json:"slug"`
+	Description   string   `json:"description"`
+	NameFa        string   `json:"nameFa,omitempty"`
+	NameEn        string   `json:"nameEn,omitempty"`
+	DescriptionFa string   `json:"descriptionFa,omitempty"`
+	DescriptionEn string   `json:"descriptionEn,omitempty"`
+	SubtitleFa    string   `json:"subtitleFa,omitempty"`
+	SubtitleEn    string   `json:"subtitleEn,omitempty"`
+	Price         int      `json:"price"`
+	Category      string   `json:"category"`
+	Color         string   `json:"color"`
+	Weight        int      `json:"weight"`
+	Stock         int      `json:"stock"`
+	Image         string   `json:"image"`
+	Images        []string `json:"images,omitempty"`
+	Featured      bool     `json:"featured"`
+	Rating        float64  `json:"rating"`
 }
 type Course struct {
 	ID          string              `json:"id"`
@@ -88,17 +98,24 @@ type Item struct {
 	Name      string `json:"name,omitempty"`
 	Price     int    `json:"price,omitempty"`
 }
+type OrderProgress struct {
+	Status string `json:"status"`
+	At     string `json:"at"`
+	By     string `json:"by"`
+}
 type Order struct {
-	ID            string         `json:"id"`
-	UserID        string         `json:"userId"`
-	Items         []Item         `json:"items"`
-	Total         int            `json:"total"`
-	Discount      int            `json:"discount"`
-	ShippingFee   int            `json:"shippingFee"`
-	Status        string         `json:"status"`
-	PaymentStatus string         `json:"paymentStatus"`
-	CreatedAt     string         `json:"createdAt"`
-	Address       map[string]any `json:"address"`
+	Source        string          `json:"source,omitempty"`
+	Progress      []OrderProgress `json:"progress,omitempty"`
+	ID            string          `json:"id"`
+	UserID        string          `json:"userId"`
+	Items         []Item          `json:"items"`
+	Total         int             `json:"total"`
+	Discount      int             `json:"discount"`
+	ShippingFee   int             `json:"shippingFee"`
+	Status        string          `json:"status"`
+	PaymentStatus string          `json:"paymentStatus"`
+	CreatedAt     string          `json:"createdAt"`
+	Address       map[string]any  `json:"address"`
 }
 type Review struct {
 	ID      string `json:"id"`
@@ -111,17 +128,24 @@ type Session struct {
 	UserID  string    `json:"userId"`
 	Expires time.Time `json:"expires"`
 }
+type ContactRequest struct {
+	ID        string `json:"id"`
+	Phone     string `json:"phone"`
+	City      string `json:"city"`
+	CreatedAt string `json:"createdAt"`
+}
 type State struct {
-	Discounts map[string]Discount `json:"discounts"`
-	Settings  Settings            `json:"settings"`
-	Products  map[string]Product  `json:"products"`
-	Courses   map[string]Course   `json:"courses"`
-	Users     map[string]User     `json:"users"`
-	Sessions  map[string]Session  `json:"sessions"`
-	Orders    map[string]Order    `json:"orders"`
-	Carts     map[string][]Item   `json:"carts"`
-	Wishlists map[string][]string `json:"wishlists"`
-	Reviews   map[string][]Review `json:"reviews"`
+	ContactRequests []ContactRequest    `json:"contactRequests,omitempty"`
+	Discounts       map[string]Discount `json:"discounts"`
+	Settings        Settings            `json:"settings"`
+	Products        map[string]Product  `json:"products"`
+	Courses         map[string]Course   `json:"courses"`
+	Users           map[string]User     `json:"users"`
+	Sessions        map[string]Session  `json:"sessions"`
+	Orders          map[string]Order    `json:"orders"`
+	Carts           map[string][]Item   `json:"carts"`
+	Wishlists       map[string][]string `json:"wishlists"`
+	Reviews         map[string][]Review `json:"reviews"`
 }
 type Discount struct {
 	Code    string `json:"code"`
@@ -182,6 +206,13 @@ func initial() State {
 	s.Users["admin"] = User{ID: "admin", Name: "JUG Studio", Email: env("ADMIN_EMAIL", "admin@jug.local"), Role: "admin", PasswordHash: string(h)}
 	return s
 }
+func testPaymentsEnabled() bool {
+	return os.Getenv("JUG_TEST_PAYMENTS") == "true" || (os.Getenv("JUG_DEMO") == "true" && os.Getenv("VERCEL") == "" && os.Getenv("DATABASE_URL") == "")
+}
+func validEmail(email string) bool {
+	parsed, err := mail.ParseAddress(email)
+	return err == nil && parsed.Address == email && len(email) <= 254 && strings.Contains(email, "@")
+}
 func env(k, d string) string {
 	if v := os.Getenv(k); v != "" {
 		return v
@@ -212,8 +243,14 @@ func fail(w http.ResponseWriter, status int, msg string) {
 }
 func decode(w http.ResponseWriter, r *http.Request, v any) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
-	if json.NewDecoder(r.Body).Decode(v) != nil {
+	decoder := json.NewDecoder(r.Body)
+	if decoder.Decode(v) != nil {
 		fail(w, 400, "Invalid request body")
+		return false
+	}
+	var extra any
+	if decoder.Decode(&extra) != io.EOF {
+		fail(w, 400, "Request must contain a single JSON object")
 		return false
 	}
 	return true
@@ -251,7 +288,7 @@ func priceOrder(products map[string]Product, items []Item, code string) ([]Item,
 	out := []Item{}
 	for k, q := range merged {
 		p, ok := products[k]
-		if !ok || q > p.Stock {
+		if !ok || q > p.Stock || q > 100 {
 			return nil, 0, 0, errors.New("Product unavailable or insufficient stock")
 		}
 		total += p.Price * q
@@ -275,12 +312,25 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Cache-Control", "no-store")
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(204)
 		return
 	}
 	if strings.HasPrefix(r.URL.Path, "/api/media/") {
 		serveMedia(w, r)
+		return
+	}
+	// Media transfers never hold the catalog lock or a database transaction.
+	uploadPath := strings.TrimSuffix(r.URL.Path, "/")
+	if uploadPath == "/api/admin/uploads" || uploadPath == "/api/adminneda/uploads" {
+		if uploadPath == "/api/admin/uploads" && !a.authorizeMediaUpload(w, r) {
+			return
+		}
+		controller := http.NewResponseController(w)
+		_ = controller.SetReadDeadline(time.Now().Add(10 * time.Minute))
+		_ = controller.SetWriteDeadline(time.Now().Add(10 * time.Minute))
+		a.uploadImage(w, r)
 		return
 	}
 	a.mu.Lock()
@@ -357,11 +407,60 @@ func (a *App) handle(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(path, "/")
 	u, authed := a.user(r)
 	if path == "health" {
-		respond(w, 200, map[string]any{"status": "ok", "storage": map[bool]string{true: "postgresql", false: "demo-json"}[a.db != nil], "testPayments": true})
+		respond(w, 200, map[string]any{"status": "ok", "storage": map[bool]string{true: "postgresql", false: "demo-json"}[a.db != nil], "testPayments": testPaymentsEnabled(), "checkoutAvailable": testPaymentsEnabled()})
+		return
+	}
+	if path == "contact-requests" && r.Method == "POST" {
+		var b struct {
+			Phone, City  string
+			Items        []Item
+			SubmissionID string
+		}
+		if !decode(w, r, &b) {
+			return
+		}
+		b.Phone = strings.TrimSpace(b.Phone)
+		b.City = strings.TrimSpace(b.City)
+		digits := strings.TrimPrefix(b.Phone, "+")
+		valid := len(digits) >= 8 && len(digits) <= 15
+		for _, c := range digits {
+			if c < '0' || c > '9' {
+				valid = false
+			}
+		}
+		if !valid || len([]rune(b.City)) < 2 || len([]rune(b.City)) > 100 {
+			fail(w, 400, "Enter a valid phone number and city")
+			return
+		}
+		if len(b.Items) > 0 {
+			items, total, _, err := priceOrder(a.state.Products, b.Items, "")
+			if err != nil {
+				fail(w, 400, err.Error())
+				return
+			}
+			submissionID := strings.TrimSpace(b.SubmissionID)
+			if len(submissionID) < 16 || len(submissionID) > 100 {
+				fail(w, 400, "Invalid submission reference")
+				return
+			}
+			for _, existing := range a.state.Orders {
+				if existing.Source == "callback" && existing.Address["submissionId"] == submissionID {
+					respond(w, 200, map[string]any{"saved": true, "order": existing})
+					return
+				}
+			}
+			now := time.Now().UTC().Format(time.RFC3339)
+			o := Order{ID: id(), Source: "callback", UserID: u.ID, Items: items, Total: total, Status: "received", PaymentStatus: "unpaid", CreatedAt: now, Address: map[string]any{"phone": b.Phone, "city": b.City, "submissionId": submissionID}, Progress: []OrderProgress{{Status: "received", At: now, By: "customer"}}}
+			a.state.Orders[o.ID] = o
+			a.commit(w, map[string]any{"saved": true, "order": o})
+			return
+		}
+		a.state.ContactRequests = append(a.state.ContactRequests, ContactRequest{ID: id(), Phone: b.Phone, City: b.City, CreatedAt: time.Now().UTC().Format(time.RFC3339)})
+		a.commit(w, map[string]any{"saved": true})
 		return
 	}
 	if path == "settings" && r.Method == "GET" {
-		respond(w, 200, map[string]any{"settings": a.state.Settings})
+		respond(w, 200, map[string]any{"settings": a.state.Settings, "testPayments": testPaymentsEnabled(), "checkoutAvailable": testPaymentsEnabled()})
 		return
 	}
 	if len(parts) == 2 && parts[0] == "courses" && r.Method == "GET" {
@@ -398,6 +497,7 @@ func (a *App) handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		b.Email = strings.ToLower(strings.TrimSpace(b.Email))
+		b.Name = strings.TrimSpace(b.Name)
 		var found User
 		for _, x := range a.state.Users {
 			if x.Email == b.Email {
@@ -405,7 +505,7 @@ func (a *App) handle(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if path == "auth/register" {
-			if !strings.Contains(b.Email, "@") || len(b.Name) < 2 || len(b.Password) < 8 || len(b.Password) > 72 {
+			if !validEmail(b.Email) || len(b.Name) < 2 || len(b.Name) > 100 || len(b.Password) < 8 || len(b.Password) > 72 {
 				fail(w, 400, "Enter a name, valid email and password of 8–72 characters")
 				return
 			}
@@ -430,6 +530,7 @@ func (a *App) handle(w http.ResponseWriter, r *http.Request) {
 		for _, p := range a.state.Products {
 			ps = append(ps, p)
 		}
+		sort.Slice(ps, func(i, j int) bool { return ps[i].ID < ps[j].ID })
 		respond(w, 200, map[string]any{"products": ps})
 		return
 	}
@@ -439,6 +540,7 @@ func (a *App) handle(w http.ResponseWriter, r *http.Request) {
 			c.Lessons = nil
 			cs = append(cs, c)
 		}
+		sort.Slice(cs, func(i, j int) bool { return cs[i].ID < cs[j].ID })
 		respond(w, 200, map[string]any{"courses": cs})
 		return
 	}
@@ -452,11 +554,20 @@ func (a *App) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(parts) == 3 && parts[0] == "products" && parts[2] == "reviews" && r.Method == "GET" {
+		if _, exists := a.state.Products[parts[1]]; !exists {
+			fail(w, 404, "Product not found")
+			return
+		}
 		reviews := a.state.Reviews[parts[1]]
 		if reviews == nil {
 			reviews = []Review{}
 		}
 		respond(w, 200, map[string]any{"reviews": reviews})
+		return
+	}
+	// Temporary public administration endpoint for the current rollout.
+	if parts[0] == "adminneda" {
+		a.admin(w, r, parts)
 		return
 	}
 	if !authed && path != "checkout" {
@@ -465,6 +576,10 @@ func (a *App) handle(w http.ResponseWriter, r *http.Request) {
 	}
 	switch path {
 	case "auth/me":
+		if r.Method != "GET" {
+			fail(w, 405, "Use GET")
+			return
+		}
 		respond(w, 200, map[string]any{"user": publicUser(u)})
 		return
 	case "auth/logout":
@@ -476,6 +591,10 @@ func (a *App) handle(w http.ResponseWriter, r *http.Request) {
 		a.commit(w, map[string]bool{"ok": true})
 		return
 	case "cart":
+		if r.Method != "GET" && r.Method != "PUT" {
+			fail(w, 405, "Use GET or PUT")
+			return
+		}
 		if r.Method == "PUT" {
 			var b struct {
 				Items []Item `json:"items"`
@@ -483,11 +602,15 @@ func (a *App) handle(w http.ResponseWriter, r *http.Request) {
 			if !decode(w, r, &b) {
 				return
 			}
-			for _, i := range b.Items {
-				if i.Quantity < 1 || i.Quantity > 100 {
-					fail(w, 400, "Invalid quantity")
+			if len(b.Items) > 0 {
+				items, _, _, err := priceOrder(a.state.Products, b.Items, "")
+				if err != nil {
+					fail(w, 400, err.Error())
 					return
 				}
+				b.Items = items
+			} else {
+				b.Items = []Item{}
 			}
 			a.state.Carts[u.ID] = b.Items
 			a.commit(w, map[string]any{"items": b.Items})
@@ -500,6 +623,10 @@ func (a *App) handle(w http.ResponseWriter, r *http.Request) {
 		respond(w, 200, map[string]any{"items": items})
 		return
 	case "wishlist":
+		if r.Method != "GET" && r.Method != "PUT" {
+			fail(w, 405, "Use GET or PUT")
+			return
+		}
 		if r.Method == "PUT" {
 			var b struct {
 				ProductIDs []string `json:"productIds"`
@@ -524,15 +651,24 @@ func (a *App) handle(w http.ResponseWriter, r *http.Request) {
 		respond(w, 200, map[string]any{"productIds": ids})
 		return
 	case "orders":
+		if r.Method != "GET" {
+			fail(w, 405, "Use GET")
+			return
+		}
 		orders := []Order{}
 		for _, o := range a.state.Orders {
 			if o.UserID == u.ID {
 				orders = append(orders, o)
 			}
 		}
+		sort.Slice(orders, func(i, j int) bool { return orders[i].CreatedAt > orders[j].CreatedAt })
 		respond(w, 200, map[string]any{"orders": orders})
 		return
 	case "checkout":
+		if !testPaymentsEnabled() {
+			fail(w, 503, "Checkout is not yet available. No payment will be taken.")
+			return
+		}
 		if r.Method != "POST" {
 			fail(w, 405, "Use POST")
 			return
@@ -584,6 +720,10 @@ func (a *App) handle(w http.ResponseWriter, r *http.Request) {
 		a.commit(w, map[string]any{"order": o, "token": guestToken})
 		return
 	case "payments/test":
+		if !testPaymentsEnabled() {
+			fail(w, 503, "Checkout is not yet available. No payment will be taken.")
+			return
+		}
 		if r.Method != "POST" {
 			fail(w, 405, "Use POST")
 			return
@@ -671,6 +811,10 @@ func (a *App) handle(w http.ResponseWriter, r *http.Request) {
 	fail(w, 404, "Route not found")
 }
 func (a *App) admin(w http.ResponseWriter, r *http.Request, p []string) {
+	adminUser, _ := a.user(r)
+	if p[0] == "adminneda" {
+		adminUser = User{ID: "public-adminneda"}
+	}
 	if len(p) < 2 {
 		fail(w, 404, "Route not found")
 		return
@@ -685,7 +829,7 @@ func (a *App) admin(w http.ResponseWriter, r *http.Request, p []string) {
 		return
 	case "settings":
 		if r.Method == "GET" {
-			respond(w, 200, map[string]any{"settings": a.state.Settings})
+			respond(w, 200, map[string]any{"settings": a.state.Settings, "testPayments": testPaymentsEnabled(), "checkoutAvailable": testPaymentsEnabled()})
 			return
 		}
 		if r.Method != "PUT" {
@@ -696,8 +840,8 @@ func (a *App) admin(w http.ResponseWriter, r *http.Request, p []string) {
 		if !decode(w, r, &s) {
 			return
 		}
-		if s.ShippingFee < 0 || s.FreeShippingThreshold < 0 {
-			fail(w, 400, "Shipping amounts cannot be negative")
+		if s.ShippingFee < 0 || s.FreeShippingThreshold < 0 || s.ShippingFee > 1000000000 || s.FreeShippingThreshold > 1000000000 {
+			fail(w, 400, "Shipping amounts must be between 0 and 1000000000")
 			return
 		}
 		a.state.Settings = s
@@ -788,18 +932,64 @@ func (a *App) admin(w http.ResponseWriter, r *http.Request, p []string) {
 		if !decode(w, r, &x) {
 			return
 		}
+		x.Name = strings.TrimSpace(x.Name)
+		x.NameFa = strings.TrimSpace(x.NameFa)
+		x.NameEn = strings.TrimSpace(x.NameEn)
+		x.DescriptionFa = strings.TrimSpace(x.DescriptionFa)
+		x.DescriptionEn = strings.TrimSpace(x.DescriptionEn)
+		if x.NameEn != "" {
+			x.Name = x.NameEn
+		}
+		if x.DescriptionEn != "" {
+			x.Description = x.DescriptionEn
+		}
 		if x.Name == "" || x.Price < 1 || x.Stock < 0 || x.Stock > 100000 || x.Price > 1000000000 {
 			fail(w, 400, "Name, positive price and valid stock required")
 			return
 		}
+		if (x.Category != "set" && x.Category != "solo") || x.Weight < 1 || x.Weight > 10000 {
+			fail(w, 400, "Choose set or solo and a ball weight between 1 and 10000 grams")
+			return
+		}
+		if len([]rune(x.Name)) > 200 || len([]rune(x.NameFa)) > 200 || len([]rune(x.NameEn)) > 200 || len([]rune(x.Description)) > 10000 || len([]rune(x.DescriptionFa)) > 10000 || len([]rune(x.DescriptionEn)) > 10000 || len([]rune(x.SubtitleFa)) > 300 || len([]rune(x.SubtitleEn)) > 300 || len([]rune(x.Color)) > 100 {
+			fail(w, 400, "Product text exceeds the allowed length")
+			return
+		}
+		images := []string{}
+		seen := map[string]bool{}
+		for _, image := range append([]string{x.Image}, x.Images...) {
+			image = strings.TrimSpace(image)
+			if image == "" || seen[image] {
+				continue
+			}
+			if len(image) > 2048 || strings.ContainsAny(image, "\r\n\t ") || !(strings.HasPrefix(image, "https://") || strings.HasPrefix(image, "http://") || (strings.HasPrefix(image, "/") && !strings.HasPrefix(image, "//"))) {
+				fail(w, 400, "Images must use an HTTP URL or a path starting with /")
+				return
+			}
+			seen[image] = true
+			images = append(images, image)
+		}
+		if len(images) > 12 {
+			fail(w, 400, "A product can have at most 12 images")
+			return
+		}
+		x.Images = images
+		x.Image = ""
+		if len(images) > 0 {
+			x.Image = images[0]
+		}
 		if key != "" {
-			if _, ok := a.state.Products[key]; !ok {
+			previous, ok := a.state.Products[key]
+			if !ok {
 				fail(w, 404, "Product not found")
 				return
 			}
 			x.ID = key
+			x.Rating = previous.Rating
+			x.Slug = previous.Slug
 		} else {
 			x.ID = id()
+			x.Rating = 0
 		}
 		if x.Slug == "" {
 			x.Slug = x.ID
@@ -857,6 +1047,7 @@ func (a *App) admin(w http.ResponseWriter, r *http.Request, p []string) {
 			for _, x := range a.state.Orders {
 				items = append(items, x)
 			}
+			sort.Slice(items, func(i, j int) bool { return items[i].CreatedAt > items[j].CreatedAt })
 			respond(w, 200, map[string]any{"orders": items})
 			return
 		}
@@ -873,6 +1064,24 @@ func (a *App) admin(w http.ResponseWriter, r *http.Request, p []string) {
 		if !decode(w, r, &b) {
 			return
 		}
+		if o.Source == "callback" {
+			allowed := map[string]bool{"received": true, "contacting": true, "confirmed": true, "processing": true, "shipped": true, "delivered": true, "cancelled": true}
+			if !allowed[b.Status] {
+				fail(w, 400, "Invalid order status")
+				return
+			}
+			if o.Status != b.Status {
+				if o.Status == "delivered" || o.Status == "cancelled" {
+					fail(w, 409, "Completed orders cannot be reopened")
+					return
+				}
+				o.Status = b.Status
+				o.Progress = append(o.Progress, OrderProgress{Status: b.Status, At: time.Now().UTC().Format(time.RFC3339), By: adminUser.ID})
+				a.state.Orders[key] = o
+			}
+			a.commit(w, map[string]any{"order": o})
+			return
+		}
 		if b.Status != "processing" && b.Status != "shipped" && b.Status != "delivered" && b.Status != "cancelled" {
 			fail(w, 400, "Invalid order status")
 			return
@@ -880,6 +1089,17 @@ func (a *App) admin(w http.ResponseWriter, r *http.Request, p []string) {
 		if b.Status != "cancelled" && o.PaymentStatus != "paid_test" {
 			fail(w, 409, "Only paid orders can be fulfilled")
 			return
+		}
+		if o.Status != b.Status {
+			allowed := map[string]map[string]bool{
+				"awaiting_payment": {"cancelled": true},
+				"processing":       {"shipped": true, "cancelled": true},
+				"shipped":          {"delivered": true},
+			}
+			if !allowed[o.Status][b.Status] {
+				fail(w, 409, "Invalid order status transition")
+				return
+			}
 		}
 		if b.Status == "cancelled" && o.Status != "cancelled" && o.PaymentStatus == "paid_test" {
 			for _, i := range o.Items {
@@ -892,6 +1112,9 @@ func (a *App) admin(w http.ResponseWriter, r *http.Request, p []string) {
 		if o.Status == "cancelled" && b.Status != "cancelled" {
 			fail(w, 409, "Cancelled orders cannot be reopened")
 			return
+		}
+		if o.Status != b.Status {
+			o.Progress = append(o.Progress, OrderProgress{Status: b.Status, At: time.Now().UTC().Format(time.RFC3339), By: adminUser.ID})
 		}
 		o.Status = b.Status
 		a.state.Orders[key] = o

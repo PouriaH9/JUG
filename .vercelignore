@@ -9,3 +9,5 @@
 *.log
 **/*.exe
 frontend/*-preview.png
+backend/.local-media/
+frontend/logo-3d-qa/
