@@ -102,6 +102,12 @@ func TestDeployedAPIStorageRoundTrip(t *testing.T) {
 		} else {
 			t.Log("Generated smoke-test image deleted")
 		}
+		if strings.Contains(upload.Key, "-full.") {
+			thumbnail := strings.Split(upload.Key, "-full.")[0] + "-thumb.jpg"
+			if err := storage.remove(cleanup, thumbnail); err != nil {
+				t.Error("generated thumbnail cleanup failed")
+			}
+		}
 	})
 	if upload.URL != "/api/media/"+upload.Key || upload.ContentType != "image/png" || upload.Size != len(data) {
 		t.Fatal("upload metadata did not match the test image")
